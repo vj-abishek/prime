@@ -60,6 +60,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   const currentCode = useSignal(code);
   const showFeedback = useSignal(false);
   const feedbackMessage = useSignal("");
+  const isSharing = useSignal(false);
 
   // Function to recreate editor with new language support
   const recreateEditor = (newCode: string) => {
@@ -317,6 +318,9 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   };
 
   const shareCode = async () => {
+    if (isSharing.value) return; // Prevent multiple clicks
+    
+    isSharing.value = true;
     try {
       // Store code in Redis and get share URL
       const response = await fetch('/api/store', {
@@ -337,14 +341,14 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         } else {
           showFeedbackMessage("Share URL copied to clipboard!");
         }
-        // Redirect to the share page
-        window.location.href = result.url;
       } else {
         showFeedbackMessage("Failed to share code");
       }
     } catch (err) {
       console.error('Share error:', err);
       showFeedbackMessage("Failed to share");
+    } finally {
+      isSharing.value = false;
     }
   };
 
@@ -431,13 +435,20 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
             
             <button
               onClick={shareCode}
-              class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+              disabled={isSharing.value}
+              class={`px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm ${isSharing.value ? 'opacity-50 cursor-not-allowed' : ''}`}
               title="Share code"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-              </svg>
-              Share
+              {isSharing.value ? (
+                <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              ) : (
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                </svg>
+              )}
+              {isSharing.value ? 'Sharing...' : 'Share'}
             </button>
           </>
         )}
