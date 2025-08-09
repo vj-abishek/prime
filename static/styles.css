@@ -24,6 +24,21 @@ html, body {
 /* Fira Code font fallback */
 .font-fira-code {
   font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-feature-settings: "liga" 1, "calt" 1;
+  font-variant-ligatures: contextual;
+}
+
+/* CodeMirror Fira Code styling */
+.cm-editor {
+  font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+  font-variant-ligatures: contextual !important;
+}
+
+.cm-content {
+  font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+  font-variant-ligatures: contextual !important;
 }
 
 /* Ensure line numbers are visible */

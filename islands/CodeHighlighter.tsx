@@ -86,44 +86,66 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     // Detect if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-    // Create new editor with detected language
-    const view = new EditorView({
-      parent: parentRef.current,
-      doc: newCode,
-      extensions: [
-        basicSetup,
-        oneDark,
-        languageExtension,
-        EditorView.editable.of(true),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            const updatedCode = update.state.doc.toString();
-            currentCode.value = updatedCode;
-            onCodeChange?.(updatedCode);
-          }
-        }),
-        EditorView.theme({
-          "&": { maxHeight: "100%", maxWidth: "100%" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { paddingBottom: "80%" },
-          // Make line numbers non-selectable
+            // Create new editor with detected language
+        const view = new EditorView({
+          parent: parentRef.current,
+          doc: newCode,
+          extensions: [
+            basicSetup,
+            oneDark,
+            languageExtension,
+            EditorView.editable.of(true),
+            EditorView.updateListener.of((update) => {
+              if (update.docChanged) {
+                const updatedCode = update.state.doc.toString();
+                currentCode.value = updatedCode;
+                onCodeChange?.(updatedCode);
+              }
+            }),
+            EditorView.theme({
+              "&": { 
+                height: "100dvh", 
+                maxWidth: "100%",
+                overflow: "hidden",
+                fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+                fontSize: "14px",
+                lineHeight: "1.5"
+              },
+              ".cm-scroller": { 
+                overflow: "auto",
+                height: "calc(100dvh - 80px)" // Account for action buttons
+              },
+              ".cm-content": { 
+                paddingTop: "20px", // Add top padding
+                paddingBottom: "20px", // Reduced padding
+                fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+                fontSize: "14px",
+                lineHeight: "1.5"
+              },
+          // Make line numbers non-selectable and style them
           ".cm-gutters": { 
             userSelect: "none",
             WebkitUserSelect: "none",
             MozUserSelect: "none",
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           },
           ".cm-lineNumbers": { 
             userSelect: "none",
             WebkitUserSelect: "none", 
             MozUserSelect: "none",
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           },
           ".cm-gutterElement": {
             userSelect: "none",
             WebkitUserSelect: "none",
             MozUserSelect: "none", 
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           }
         }),
       ].flat(),
@@ -175,27 +197,49 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
           }
         }),
         EditorView.theme({
-          "&": { maxHeight: "100%", maxWidth: "100%" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { paddingBottom: "80%" },
-          // Make line numbers non-selectable
+          "&": { 
+            height: "100dvh", 
+            maxWidth: "100%",
+            overflow: "hidden",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px",
+            lineHeight: "1.5"
+          },
+          ".cm-scroller": { 
+            overflow: "auto",
+            height: "calc(100dvh - 80px)" // Account for action buttons
+          },
+          ".cm-content": { 
+            paddingTop: "20px", // Add top padding
+            paddingBottom: "20px", // Reduced padding
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px",
+            lineHeight: "1.5"
+          },
+          // Make line numbers non-selectable and style them
           ".cm-gutters": { 
             userSelect: "none",
             WebkitUserSelect: "none",
             MozUserSelect: "none",
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           },
           ".cm-lineNumbers": { 
             userSelect: "none",
             WebkitUserSelect: "none", 
             MozUserSelect: "none",
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           },
           ".cm-gutterElement": {
             userSelect: "none",
             WebkitUserSelect: "none",
             MozUserSelect: "none", 
-            msUserSelect: "none"
+            msUserSelect: "none",
+            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+            fontSize: "14px"
           }
         }),
       ].flat(),
@@ -293,6 +337,8 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         } else {
           showFeedbackMessage("Share URL copied to clipboard!");
         }
+        // Redirect to the share page
+        window.location.href = result.url;
       } else {
         showFeedbackMessage("Failed to share code");
       }
@@ -363,10 +409,9 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   const hasContent = currentCode.value.trim().length > 0;
   const hasDefaultContent = currentCode.value.trim() === DEFAULT_MESSAGE.trim();
   const isEmpty = !hasContent;
-  const shouldShowPaste = isEmpty || hasDefaultContent;
 
   return (
-    <div class="relative h-full w-full">
+    <div class="relative w-full overflow-hidden" style="height: 100vh; height: 100dvh;">
       <div ref={parentRef} class="h-full w-full" />
       
       {/* Action buttons */}
@@ -397,18 +442,16 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
           </>
         )}
         
-        {shouldShowPaste && (
-          <button
-            onClick={pasteFromClipboard}
-            class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
-            title="Paste from clipboard"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Paste
-          </button>
-        )}
+        <button
+          onClick={pasteFromClipboard}
+          class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+          title="Paste from clipboard"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Paste
+        </button>
       </div>
 
       {/* Feedback message */}
