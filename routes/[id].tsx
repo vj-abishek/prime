@@ -62,7 +62,7 @@
       return (
         <>
           <Head>
-            <title>Invalid URL - Zen Code</title>
+            <title>Invalid URL - merge.cc</title>
             <meta name="description" content="Invalid or missing code ID in the URL." />
           </Head>
           <div class="h-screen bg-gray-950 text-gray-100 flex items-center justify-center">
@@ -88,7 +88,7 @@
         return (
           <>
             <Head>
-              <title>Code Not Found - Zen Code</title>
+              <title>Code Not Found - merge.cc</title>
               <meta name="description" content="The shared code could not be found." />
             </Head>
             <div class="h-screen bg-gray-950 text-gray-100 flex items-center justify-center">
@@ -111,7 +111,7 @@
       const detectedLang = detectLanguageFromContent(code);
       const totalLines = code.split('\n').length;
       const currentUrl = props.url.href;
-      const siteName = "Zen Code";
+      const siteName = "merge.cc";
 
       return (
         <>
@@ -135,7 +135,7 @@
           <meta name="twitter:card" content="summary" />
           <meta name="twitter:title" content={`Shared ${detectedLang} Code`} />
           <meta name="twitter:description" content={codePreview} />
-          <meta name="twitter:site" content="@zencode" />
+          <meta name="twitter:site" content="@mergecc" />
             
                       {/* Additional Meta Tags for Code Preview */}
             
@@ -185,7 +185,7 @@
       return (
         <>
           <Head>
-            <title>Error - Zen Code</title>
+            <title>Error - merge.cc</title>
             <meta name="description" content="There was an error loading the shared code." />
           </Head>
           <div class="h-screen bg-gray-950 text-gray-100 flex items-center justify-center">

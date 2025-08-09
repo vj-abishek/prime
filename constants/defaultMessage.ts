@@ -1,11 +1,11 @@
-export const DEFAULT_MESSAGE = `# Welcome to Zen Code ✨
+export const DEFAULT_MESSAGE = `# Welcome to merge.cc ✨
 
 ## Features
 - **Syntax highlighting** for multiple languages
 - **Share large file** in a single URL
 - **Copy & paste** easily
 
-## Why Zen Code?
+## Why merge.cc?
 Tired of sharing code through WhatsApp/Signal?
 - ❌ No syntax highlighting
 - ❌ Hard to scroll through long code
