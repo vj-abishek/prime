@@ -29,7 +29,9 @@
     "tailwindcss": "npm:tailwindcss@3.4.1",
     "tailwindcss/": "npm:/tailwindcss@3.4.1/",
     "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
-    "$std/": "https://deno.land/std@0.216.0/"
+    "$std/": "https://deno.land/std@0.216.0/",
+    "imurmurhash": "https://esm.sh/imurmurhash@0.1.4",
+    "@upstash/redis": "https://esm.sh/@upstash/redis@1.28.4"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

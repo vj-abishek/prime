@@ -10,6 +10,7 @@ import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es20
 import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
+import { shortUrlId } from "../utils/urlId.ts";
 
 interface CodeHighlighterProps {
   code: string;
@@ -273,17 +274,30 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
 
   const shareCode = async () => {
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Shared Code",
-          text: currentCode.value,
-        });
-        showFeedbackMessage("Shared successfully!");
+      // Store code in Redis and get share URL
+      const response = await fetch('/api/store', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: currentCode.value }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Copy the share URL to clipboard
+        await navigator.clipboard.writeText(result.url);
+        if (result.message) {
+          showFeedbackMessage(result.message);
+        } else {
+          showFeedbackMessage("Share URL copied to clipboard!");
+        }
       } else {
-        // Fallback to copy
-        await copyToClipboard();
+        showFeedbackMessage("Failed to share code");
       }
     } catch (err) {
+      console.error('Share error:', err);
       showFeedbackMessage("Failed to share");
     }
   };
