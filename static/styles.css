@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Line numbers styling for Highlight.js */
+.hljs-ln-numbers {
+  user-select: none;
+  text-align: center;
+  color: #6b7280;
+  border-right: 1px solid #374151;
+  vertical-align: top;
+  padding-right: 8px;
+  min-width: 25px;
+}
+
+.hljs-ln-code {
+  padding-left: 8px;
+}
+
+/* Fira Code font fallback */
+.font-fira-code {
+  font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+
+
+/* Ensure line numbers are visible */
+.hljs-ln {
+  border-collapse: collapse;
+}
+
+.hljs-ln td {
+  padding: 0;
+}
+
+/* Force line numbers to show */
+.hljs-ln-numbers {
+  display: table-cell !important;
+  text-align: right !important;
+  padding-right: 8px !important;
+  border-right: 1px solid #374151 !important;
+  min-width: 25px !important;
+}
+
+/* Highlight.js Dark Theme */
+.hljs {
+  color: #c9d1d9;
+  background: #0d1117;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #ff7b72;
+}
+
+.hljs-function .hljs-keyword {
+  color: #d2a8ff;
+}
+
+.hljs-subst {
+  color: #c9d1d9;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #a5d6ff;
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #8b949e;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-title,
+.hljs-section,
+.hljs-doctag,
+.hljs-type,
+.hljs-name,
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-literal,
+.hljs-number {
+  color: #79c0ff;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Line numbers styling */
+.hljs-ln-numbers {
+  text-align: right;
+  color: #9ca3af;
+  border-right: 1px solid #374151;
+  vertical-align: top;
+  padding-right: 12px;
+  min-width: 30px;
+  user-select: none;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hljs-ln-code {
+  padding-left: 12px;
+}
+
+.hljs-ln td {
+  padding: 0;
+  border: none;
+}
+
+.hljs-ln tr {
+  border: none;
+}
+
+/* Dark theme adjustments */
+.hljs {
+  background: #1f2937 !important;
+  color: #c9d1d9 !important;
+}
+
+.hljs-ln-numbers {
+  background: #1f2937 !important;
+  color: #9ca3af !important;
+}
