@@ -105,7 +105,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         EditorView.theme({
           "&": { maxHeight: "100%", maxWidth: "100%" },
           ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { paddingBottom: "50%" },
+          ".cm-content": { paddingBottom: "80%" },
           // Make line numbers non-selectable
           ".cm-gutters": { 
             userSelect: "none",
@@ -177,7 +177,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         EditorView.theme({
           "&": { maxHeight: "100%", maxWidth: "100%" },
           ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { paddingBottom: "50%" },
+          ".cm-content": { paddingBottom: "80%" },
           // Make line numbers non-selectable
           ".cm-gutters": { 
             userSelect: "none",

@@ -25,7 +25,7 @@ export default function Home() {
           rel="stylesheet"
         />
       </Head>
-      <div class="h-screen bg-gray-950 text-gray-100 flex items-center justify-center overflow-hidden">
+      <div class="bg-gray-950 text-gray-100 flex items-center justify-center overflow-hidden">
         <div class="w-full max-w-5xl h-full flex items-center justify-center">
           <CodeHighlighter code={typescriptCode.value} onCodeChange={handleCodeChange} />
         </div>
