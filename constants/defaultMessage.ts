@@ -2,7 +2,7 @@ export const DEFAULT_MESSAGE = `# Welcome to Zen Code ✨
 
 ## Features
 - **Syntax highlighting** for multiple languages (JS, JSX, TSX, Python, JSON)
-- **Share large files** in a single URL
+- **Share large file** in a single URL
 - **Copy & paste** easily
 
 ## Why Zen Code?

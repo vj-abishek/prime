@@ -7,6 +7,7 @@ import {
 import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2?target=es2022&dts";
 import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?target=es2022&dts";
 import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
+import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 
@@ -15,7 +16,7 @@ interface CodeHighlighterProps {
   onCodeChange?: (newCode: string) => void;
 }
 
-type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py";
+type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css";
 
 function detectLanguageFromContent(content: string): SupportedLang {
   const text = content.trim();
@@ -32,6 +33,11 @@ function detectLanguageFromContent(content: string): SupportedLang {
   // React/JSX heuristics (check before JavaScript)
   if (/\bimport\s+React|\bexport\s+default|\breturn\s*\(|\bconst\s+\w+\s*[:=]\s*\(|\bfunction\s+\w+\s*\([^)]*\)\s*:\s*JSX\.Element|\binterface\s+\w+Props|\btype\s+\w+Props|\buse[A-Z]\w+\(|<\w+[^>]*>|<\/\w+>/.test(text)) {
     return "tsx";
+  }
+
+  // CSS heuristics - simple but effective detection
+  if (/\b\w+\s*:\s*[^;]+;/.test(text) || /[.#]\w+\s*\{/.test(text) || /@(media|import|keyframes)/.test(text)) {
+    return "css";
   }
 
   // Python heuristics
@@ -54,6 +60,84 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   const showFeedback = useSignal(false);
   const feedbackMessage = useSignal("");
 
+  // Function to recreate editor with new language support
+  const recreateEditor = (newCode: string) => {
+    if (!parentRef.current) return;
+
+    // Destroy existing editor
+    if (viewRef.current) {
+      viewRef.current.destroy();
+      viewRef.current = null;
+    }
+
+    // Detect language for new content
+    const detected: SupportedLang = detectLanguageFromContent(newCode);
+    console.log("🔍 Re-detected language:", detected, "for pasted content:", newCode.substring(0, 50));
+
+    const languageExtension =
+      detected === "json" ? jsonLang()
+      : detected === "py" ? python()
+      : detected === "css" ? css()
+      : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
+      : detected === "js" ? javascript({ typescript: false })
+      : [];
+
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Create new editor with detected language
+    const view = new EditorView({
+      parent: parentRef.current,
+      doc: newCode,
+      extensions: [
+        basicSetup,
+        oneDark,
+        languageExtension,
+        EditorView.editable.of(true),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            const updatedCode = update.state.doc.toString();
+            currentCode.value = updatedCode;
+            onCodeChange?.(updatedCode);
+          }
+        }),
+        EditorView.theme({
+          "&": { maxHeight: "100%", maxWidth: "100%" },
+          ".cm-scroller": { overflow: "auto" },
+          ".cm-content": { paddingBottom: "50%" },
+          // Make line numbers non-selectable
+          ".cm-gutters": { 
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            MozUserSelect: "none",
+            msUserSelect: "none"
+          },
+          ".cm-lineNumbers": { 
+            userSelect: "none",
+            WebkitUserSelect: "none", 
+            MozUserSelect: "none",
+            msUserSelect: "none"
+          },
+          ".cm-gutterElement": {
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            MozUserSelect: "none", 
+            msUserSelect: "none"
+          }
+        }),
+      ].flat(),
+    });
+
+    // Focus editor on desktop only
+    if (!isMobile) {
+      setTimeout(() => {
+        view.focus();
+      }, 100);
+    }
+
+    viewRef.current = view;
+  };
+
   useEffect(() => {
     if (!parentRef.current) return;
 
@@ -61,13 +145,18 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     if (viewRef.current) return;
 
     const detected: SupportedLang = detectLanguageFromContent(currentCode.value);
+    console.log("🔍 Detected language:", detected, "for content preview:", currentCode.value.substring(0, 50));
 
     const languageExtension =
       detected === "json" ? jsonLang()
       : detected === "py" ? python()
+      : detected === "css" ? css()
       : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
       : [];
+
+    // Detect if device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     const view = new EditorView({
       parent: parentRef.current,
@@ -88,15 +177,73 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
           "&": { maxHeight: "100%", maxWidth: "100%" },
           ".cm-scroller": { overflow: "auto" },
           ".cm-content": { paddingBottom: "50%" },
+          // Make line numbers non-selectable
+          ".cm-gutters": { 
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            MozUserSelect: "none",
+            msUserSelect: "none"
+          },
+          ".cm-lineNumbers": { 
+            userSelect: "none",
+            WebkitUserSelect: "none", 
+            MozUserSelect: "none",
+            msUserSelect: "none"
+          },
+          ".cm-gutterElement": {
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            MozUserSelect: "none", 
+            msUserSelect: "none"
+          }
         }),
       ].flat(),
     });
+
+    // Focus editor on desktop only
+    if (!isMobile) {
+      setTimeout(() => {
+        view.focus();
+      }, 100);
+    }
 
     viewRef.current = view;
 
     return () => {
       viewRef.current?.destroy();
       viewRef.current = null;
+    };
+  }, []); // Only run once on mount
+
+  // Handle keyboard shortcuts and paste events
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Ctrl+V (Windows/Linux) or Cmd+V (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+        event.preventDefault();
+        pasteFromClipboard();
+      }
+    };
+
+    const handlePaste = (event: ClipboardEvent) => {
+      // Handle paste events (mobile and desktop)
+      const text = event.clipboardData?.getData('text/plain');
+      if (text && text.trim()) {
+        event.preventDefault();
+        recreateEditor(text);
+        currentCode.value = text;
+        onCodeChange?.(text);
+        showFeedbackMessage("Pasted successfully!");
+      }
+    };
+
+    // Add event listeners to the document
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('paste', handlePaste);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('paste', handlePaste);
     };
   }, []); // Only run once on mount
 
@@ -151,17 +298,8 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
 
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
-        // Update the CodeMirror editor directly
-        if (viewRef.current) {
-          const transaction = viewRef.current.state.update({
-            changes: {
-              from: 0,
-              to: viewRef.current.state.doc.length,
-              insert: text
-            }
-          });
-          viewRef.current.dispatch(transaction);
-        }
+        // Recreate editor with new content and detected language
+        recreateEditor(text);
         currentCode.value = text;
         onCodeChange?.(text);
         showFeedbackMessage("Pasted successfully!");
@@ -185,16 +323,8 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
           document.body.removeChild(textarea);
           
           if (success && text.trim()) {
-            if (viewRef.current) {
-              const transaction = viewRef.current.state.update({
-                changes: {
-                  from: 0,
-                  to: viewRef.current.state.doc.length,
-                  insert: text
-                }
-              });
-              viewRef.current.dispatch(transaction);
-            }
+            // Recreate editor with new content and detected language
+            recreateEditor(text);
             currentCode.value = text;
             onCodeChange?.(text);
             showFeedbackMessage("Pasted successfully!");
