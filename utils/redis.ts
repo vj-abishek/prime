@@ -2,7 +2,7 @@ import { Redis } from "@upstash/redis";
 import { compressCode, decompressCode } from "./compression.ts";
 
 const redis = new Redis({
-  url: 'https://refined-duck-46302.upstash.io',
+  url: Deno.env.get('UPSTASH_REDIS_REST_URL') || '',
   token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN') || '',
 });
 
