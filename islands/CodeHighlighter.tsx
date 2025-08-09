@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "preact/hooks";
+import { useSignal } from "@preact/signals";
 import {
   basicSetup,
   EditorView,
@@ -7,12 +8,14 @@ import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2?tar
 import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?target=es2022&dts";
 import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
+import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 
 interface CodeHighlighterProps {
   code: string;
+  onCodeChange?: (newCode: string) => void;
 }
 
-type SupportedLang = "txt" | "js" | "json" | "py";
+type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py";
 
 function detectLanguageFromContent(content: string): SupportedLang {
   const text = content.trim();
@@ -24,6 +27,11 @@ function detectLanguageFromContent(content: string): SupportedLang {
       JSON.parse(text);
       return "json";
     } catch (_) {/* not json */}
+  }
+
+  // React/JSX heuristics (check before JavaScript)
+  if (/\bimport\s+React|\bexport\s+default|\breturn\s*\(|\bconst\s+\w+\s*[:=]\s*\(|\bfunction\s+\w+\s*\([^)]*\)\s*:\s*JSX\.Element|\binterface\s+\w+Props|\btype\s+\w+Props|\buse[A-Z]\w+\(|<\w+[^>]*>|<\/\w+>/.test(text)) {
+    return "tsx";
   }
 
   // Python heuristics
@@ -39,32 +47,43 @@ function detectLanguageFromContent(content: string): SupportedLang {
   return "txt";
 }
 
-export default function CodeHighlighter({ code }: CodeHighlighterProps) {
+export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const currentCode = useSignal(code);
+  const showFeedback = useSignal(false);
+  const feedbackMessage = useSignal("");
 
   useEffect(() => {
     if (!parentRef.current) return;
 
-    // Destroy existing view if any
-    viewRef.current?.destroy();
+    // Only create editor if it doesn't exist
+    if (viewRef.current) return;
 
-    const detected: SupportedLang = detectLanguageFromContent(code);
+    const detected: SupportedLang = detectLanguageFromContent(currentCode.value);
 
     const languageExtension =
       detected === "json" ? jsonLang()
       : detected === "py" ? python()
+      : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
       : [];
 
     const view = new EditorView({
       parent: parentRef.current,
-      doc: code,
+      doc: currentCode.value,
       extensions: [
         basicSetup,
         oneDark,
         languageExtension,
         EditorView.editable.of(true),
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            const newCode = update.state.doc.toString();
+            currentCode.value = newCode;
+            onCodeChange?.(newCode);
+          }
+        }),
         EditorView.theme({
           "&": { maxHeight: "100%", maxWidth: "100%" },
           ".cm-scroller": { overflow: "auto" },
@@ -79,7 +98,181 @@ export default function CodeHighlighter({ code }: CodeHighlighterProps) {
       viewRef.current?.destroy();
       viewRef.current = null;
     };
+  }, []); // Only run once on mount
+
+  // Handle external code changes (from parent component)
+  useEffect(() => {
+    if (viewRef.current && code !== currentCode.value) {
+      const transaction = viewRef.current.state.update({
+        changes: {
+          from: 0,
+          to: viewRef.current.state.doc.length,
+          insert: code
+        }
+      });
+      viewRef.current.dispatch(transaction);
+      currentCode.value = code;
+    }
   }, [code]);
 
-  return <div ref={parentRef} class="h-full w-full" />;
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(currentCode.value);
+      showFeedbackMessage("Copied to clipboard!");
+    } catch (err) {
+      showFeedbackMessage("Failed to copy");
+    }
+  };
+
+  const shareCode = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Shared Code",
+          text: currentCode.value,
+        });
+        showFeedbackMessage("Shared successfully!");
+      } else {
+        // Fallback to copy
+        await copyToClipboard();
+      }
+    } catch (err) {
+      showFeedbackMessage("Failed to share");
+    }
+  };
+
+  const pasteFromClipboard = async () => {
+    try {
+      // Check if clipboard API is available
+      if (!navigator.clipboard) {
+        showFeedbackMessage("Clipboard API not supported");
+        return;
+      }
+
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        // Update the CodeMirror editor directly
+        if (viewRef.current) {
+          const transaction = viewRef.current.state.update({
+            changes: {
+              from: 0,
+              to: viewRef.current.state.doc.length,
+              insert: text
+            }
+          });
+          viewRef.current.dispatch(transaction);
+        }
+        currentCode.value = text;
+        onCodeChange?.(text);
+        showFeedbackMessage("Pasted successfully!");
+      } else {
+        showFeedbackMessage("Clipboard is empty");
+      }
+    } catch (err) {
+      console.error("Paste error:", err);
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        // Fallback: try using a temporary textarea
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          
+          // Try to paste using document.execCommand
+          const success = document.execCommand('paste');
+          const text = textarea.value;
+          document.body.removeChild(textarea);
+          
+          if (success && text.trim()) {
+            if (viewRef.current) {
+              const transaction = viewRef.current.state.update({
+                changes: {
+                  from: 0,
+                  to: viewRef.current.state.doc.length,
+                  insert: text
+                }
+              });
+              viewRef.current.dispatch(transaction);
+            }
+            currentCode.value = text;
+            onCodeChange?.(text);
+            showFeedbackMessage("Pasted successfully!");
+          } else {
+            showFeedbackMessage("Please use Ctrl+V to paste");
+          }
+        } catch (fallbackErr) {
+          showFeedbackMessage("Please use Ctrl+V to paste");
+        }
+      } else {
+        showFeedbackMessage("Failed to paste");
+      }
+    }
+  };
+
+  const showFeedbackMessage = (message: string) => {
+    feedbackMessage.value = message;
+    showFeedback.value = true;
+    setTimeout(() => showFeedback.value = false, 2000);
+  };
+
+  const hasContent = currentCode.value.trim().length > 0;
+  const hasDefaultContent = currentCode.value.trim() === DEFAULT_MESSAGE.trim();
+  const isEmpty = !hasContent;
+  const shouldShowPaste = isEmpty || hasDefaultContent;
+
+  return (
+    <div class="relative h-full w-full">
+      <div ref={parentRef} class="h-full w-full" />
+      
+      {/* Action buttons */}
+      <div class="absolute bottom-4 right-4 flex gap-2">
+        {hasContent && !hasDefaultContent && (
+          <>
+            <button
+              onClick={copyToClipboard}
+              class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+              title="Copy code"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </button>
+            
+            <button
+              onClick={shareCode}
+              class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+              title="Share code"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+              </svg>
+              Share
+            </button>
+          </>
+        )}
+        
+        {shouldShowPaste && (
+          <button
+            onClick={pasteFromClipboard}
+            class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
+            title="Paste from clipboard"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Paste
+          </button>
+        )}
+      </div>
+
+      {/* Feedback message */}
+      {showFeedback.value && (
+        <div class="absolute bottom-16 right-4 px-4 py-2 bg-gray-800 text-gray-200 rounded-lg text-sm animate-fade-in">
+          {feedbackMessage.value}
+        </div>
+      )}
+    </div>
+  );
 }

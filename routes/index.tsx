@@ -1,56 +1,14 @@
 import { Head } from "$fresh/runtime.ts";
+import { useSignal } from "@preact/signals";
 import CodeHighlighter from "../islands/CodeHighlighter.tsx";
+import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 
 export default function Home() {
-  const typescriptCode = `// Sample TypeScript/JavaScript code
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  isActive: boolean;
-}
+  const typescriptCode = useSignal(DEFAULT_MESSAGE);
 
-class UserService {
-  private users: User[] = [];
-
-  async createUser(userData: Omit<User, 'id'>): Promise<User> {
-    const newUser: User = {
-      id: this.generateId(),
-      ...userData
-    };
-    
-    this.users.push(newUser);
-    return newUser;
-  }
-
-  private generateId(): number {
-    return Math.floor(Math.random() * 10000) + 1;
-  }
-
-  async getUserById(id: number): Promise<User | null> {
-    return this.users.find(user => user.id === id) || null;
-  }
-
-  async updateUser(id: number, updates: Partial<User>): Promise<User | null> {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    
-    if (userIndex === -1) return null;
-    
-    this.users[userIndex] = { ...this.users[userIndex], ...updates };
-    return this.users[userIndex];
-  }
-}
-
-// Usage example
-const userService = new UserService();
-
-userService.createUser({
-  name: "John Doe",
-  email: "john@example.com",
-  isActive: true
-}).then(user => {
-  console.log("Created user:", user);
-});`;
+  const handleCodeChange = (newCode: string) => {
+    typescriptCode.value = newCode;
+  };
 
   return (
     <>
@@ -67,9 +25,9 @@ userService.createUser({
           rel="stylesheet"
         />
       </Head>
-      <div class="h-screen bg-gray-900 text-gray-100 flex items-center justify-center overflow-hidden">
+      <div class="h-screen bg-gray-950 text-gray-100 flex items-center justify-center overflow-hidden">
         <div class="w-full max-w-5xl h-full flex items-center justify-center">
-          <CodeHighlighter code={typescriptCode} />
+          <CodeHighlighter code={typescriptCode.value} onCodeChange={handleCodeChange} />
         </div>
       </div>
     </>
