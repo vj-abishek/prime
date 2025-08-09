@@ -31,7 +31,7 @@ export const handler = async (req: Request, _ctx: FreshContext): Promise<Respons
       return new Response(JSON.stringify({ 
         success: true,
         id,
-        url: `${req.url.split('/api')[0]}/share/${id}`,
+        url: `${req.url.split('/api')[0]}/${id}`,
         message: 'Code already exists, returning existing URL'
       }), {
         status: 200,
@@ -42,7 +42,7 @@ export const handler = async (req: Request, _ctx: FreshContext): Promise<Respons
     return new Response(JSON.stringify({ 
       success: true, 
       id,
-      url: `${req.url.split('/api')[0]}/share/${id}`
+      url: `${req.url.split('/api')[0]}/${id}`
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
