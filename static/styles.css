@@ -19,10 +19,8 @@
 
 /* Fira Code font fallback */
 .font-fira-code {
-  font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace;
 }
-
-
 
 /* Ensure line numbers are visible */
 .hljs-ln {
@@ -119,7 +117,7 @@
   padding-right: 12px;
   min-width: 30px;
   user-select: none;
-  font-family: 'Fira Code', monospace;
+  font-family: "Fira Code", monospace;
   font-size: 14px;
   line-height: 1.5;
 }
