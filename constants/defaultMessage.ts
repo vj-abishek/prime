@@ -1,18 +1,22 @@
-export const DEFAULT_MESSAGE = `# Welcome to merge.cc ✨
+export const DEFAULT_MESSAGE = `+===============================================================+
+|                    🚀 SHARE CODE LIKE A PRO 🚀                 |
+|                         with merge.cc                         |
++===============================================================+
 
-## Features
-- **Syntax highlighting** for multiple languages
-- **Share large file** in a single URL
-- **Copy & paste** easily
+✨ FEATURES:
+  🎨 Beautiful syntax highlighting
+  🔗 One URL, infinite possibilities  
+  📱 Mobile-first design
+  ⚡ Lightning fast
 
-## Why merge.cc?
-Tired of sharing code through WhatsApp/Signal?
-- ❌ No syntax highlighting
-- ❌ Hard to scroll through long code
-- ❌ Messages get fragmented
+💡 PERFECT FOR:
+  • Developers • Teams • Students • Anyone who loves clean code
 
-✅ **Share with a single URL** - Perfect syntax highlighting!
+🎯 WHY MERGE.CC?
+  ❌ Stop: WhatsApp's broken formatting, tiny text, file limits
+  ✅ Start: Instant sharing, professional presentation, universal compatibility
 
-💡 **Tip**: Use the Paste button below to load your code!
+🚀 READY TO UPGRADE?
+  Use the Paste button below to get started!
 
-Happy coding! 🚀`; 
+  Join thousands of developers! 🎉`; 
