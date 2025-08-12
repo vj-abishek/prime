@@ -8,6 +8,7 @@ import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2?tar
 import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?target=es2022&dts";
 import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
 import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
+import { ruby } from "https://esm.sh/@codemirror/lang-ruby@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
 import { keymap } from "https://esm.sh/@codemirror/view@6.38.1?target=es2022&dts";
 import { indentWithTab } from "https://esm.sh/@codemirror/commands@6.8.1?target=es2022&dts";
@@ -19,7 +20,7 @@ interface CodeHighlighterProps {
   onCodeChange?: (newCode: string) => void;
 }
 
-type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css";
+type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css" | "rb";
 
 function detectLanguageFromContent(content: string): SupportedLang {
   const text = content.trim();
@@ -31,6 +32,11 @@ function detectLanguageFromContent(content: string): SupportedLang {
       JSON.parse(text);
       return "json";
     } catch (_) {/* not json */}
+  }
+
+  // Ruby heuristics (check before Python to avoid conflicts)
+  if (/\bdef\s+\w+\s*[|(]|\bclass\s+\w+(\s*<\s*\w+)?|\bmodule\s+\w+|\brequire\s+['"]|\binclude\s+\w+|\battr_accessor|\battr_reader|\battr_writer|\bdo\s*\|[^|]*\||\bend\b|\bputs\b|\bprint\b|\bgets\b|\bchomp\b|\bto_s\b|\bto_i\b|\bto_f\b|\bmap\b|\bselect\b|\breject\b|\beach\b|\bcollect\b|\bunless\b|\belsif\b|\bdo\s*$|\bend\s*$/.test(text)) {
+    return "rb";
   }
 
   // React/JSX heuristics (check before JavaScript)
@@ -84,6 +90,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       : detected === "css" ? css()
       : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
+      : detected === "rb" ? ruby()
       : [];
 
     // Detect if device is mobile
@@ -182,6 +189,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       : detected === "css" ? css()
       : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
+      : detected === "rb" ? ruby()
       : [];
 
     // Detect if device is mobile
