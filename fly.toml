@@ -4,7 +4,7 @@
 #
 
 app = 'merg'
-primary_region = 'iad'
+primary_region = 'bom'
 
 [build]
 
