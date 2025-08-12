@@ -1,9 +1,4 @@
-export const DEFAULT_MESSAGE = `+===============================================================+
-|                    🚀 SHARE CODE LIKE A PRO 🚀                 |
-|                         with merge.cc                         |
-+===============================================================+
-
-✨ FEATURES:
+export const DEFAULT_MESSAGE = `✨ FEATURES:
   🎨 Beautiful syntax highlighting
   🔗 One URL, infinite possibilities  
   📱 Mobile-first design
@@ -12,7 +7,7 @@ export const DEFAULT_MESSAGE = `+===============================================
 💡 PERFECT FOR:
   • Developers • Teams • Students • Anyone who loves clean code
 
-🎯 WHY MERGE.CC?
+🎯 WHY MERG.CC?
   ❌ Stop: WhatsApp's broken formatting, tiny text, file limits
   ✅ Start: Instant sharing, professional presentation, universal compatibility
 
