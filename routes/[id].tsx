@@ -174,7 +174,7 @@
             />
           </Head>
           <div class="bg-gray-950 text-gray-100 flex items-center justify-center overflow-hidden">
-            <div class="w-full max-w-5xl h-full flex items-center justify-center">
+            <div class="w-full h-full flex items-center justify-center">
               <CodeHighlighter code={code} />
             </div>
           </div>
