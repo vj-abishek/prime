@@ -8,7 +8,7 @@ import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2?tar
 import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?target=es2022&dts";
 import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
 import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
-import { ruby } from "https://esm.sh/@codemirror/lang-ruby@6.0.1?target=es2022&dts";
+// import { ruby } from "https://esm.sh/@codemirror/lang-ruby@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
 import { keymap } from "https://esm.sh/@codemirror/view@6.38.1?target=es2022&dts";
 import { indentWithTab } from "https://esm.sh/@codemirror/commands@6.8.1?target=es2022&dts";
@@ -90,7 +90,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       : detected === "css" ? css()
       : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
-      : detected === "rb" ? ruby()
+      // : detected === "rb" ? ruby()
       : [];
 
     // Detect if device is mobile
