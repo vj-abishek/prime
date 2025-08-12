@@ -9,6 +9,8 @@ import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?tar
 import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
 import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
+import { keymap } from "https://esm.sh/@codemirror/view@6.38.1?target=es2022&dts";
+import { indentWithTab } from "https://esm.sh/@codemirror/commands@6.8.1?target=es2022&dts";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 import { shortUrlId } from "../utils/urlId.ts";
 
@@ -96,6 +98,9 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
             oneDark,
             languageExtension,
             EditorView.editable.of(true),
+            // Tab key now inserts tab characters for indentation
+            // Accessibility: Press Escape then Tab to move focus, or use Ctrl-m (Cmd-m on Mac) to toggle tab focus mode
+            keymap.of([indentWithTab]),
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
                 const updatedCode = update.state.doc.toString();
@@ -190,6 +195,9 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         oneDark,
         languageExtension,
         EditorView.editable.of(true),
+        // Tab key now inserts tab characters for indentation
+        // Accessibility: Press Escape then Tab to move focus, or use Ctrl-m (Cmd-m on Mac) to toggle tab focus mode
+        keymap.of([indentWithTab]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const newCode = update.state.doc.toString();
