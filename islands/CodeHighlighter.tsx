@@ -189,7 +189,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       : detected === "css" ? css()
       : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
       : detected === "js" ? javascript({ typescript: false })
-      : detected === "rb" ? ruby()
+      // : detected === "rb" ? ruby()
       : [];
 
     // Detect if device is mobile
