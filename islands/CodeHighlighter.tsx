@@ -35,9 +35,9 @@ function detectLanguageFromContent(content: string): SupportedLang {
   }
 
   // Ruby heuristics (check before Python to avoid conflicts)
-  if (/\bdef\s+\w+\s*[|(]|\bclass\s+\w+(\s*<\s*\w+)?|\bmodule\s+\w+|\brequire\s+['"]|\binclude\s+\w+|\battr_accessor|\battr_reader|\battr_writer|\bdo\s*\|[^|]*\||\bend\b|\bputs\b|\bprint\b|\bgets\b|\bchomp\b|\bto_s\b|\bto_i\b|\bto_f\b|\bmap\b|\bselect\b|\breject\b|\beach\b|\bcollect\b|\bunless\b|\belsif\b|\bdo\s*$|\bend\s*$/.test(text)) {
-    return "rb";
-  }
+  // if (/\bdef\s+\w+\s*[|(]|\bclass\s+\w+(\s*<\s*\w+)?|\bmodule\s+\w+|\brequire\s+['"]|\binclude\s+\w+|\battr_accessor|\battr_reader|\battr_writer|\bdo\s*\|[^|]*\||\bend\b|\bputs\b|\bprint\b|\bgets\b|\bchomp\b|\bto_s\b|\bto_i\b|\bto_f\b|\bmap\b|\bselect\b|\breject\b|\beach\b|\bcollect\b|\bunless\b|\belsif\b|\bdo\s*$|\bend\s*$/.test(text)) {
+  //   return "rb";
+  // }
 
   // React/JSX heuristics (check before JavaScript)
   if (/\bimport\s+React|\bexport\s+default|\breturn\s*\(|\bconst\s+\w+\s*[:=]\s*\(|\bfunction\s+\w+\s*\([^)]*\)\s*:\s*JSX\.Element|\binterface\s+\w+Props|\btype\s+\w+Props|\buse[A-Z]\w+\(|<\w+[^>]*>|<\/\w+>/.test(text)) {
