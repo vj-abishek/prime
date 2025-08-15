@@ -3,10 +3,10 @@ import { useSignal } from "@preact/signals";
 import {
   basicSetup,
   EditorView,
-} from "https://esm.sh/codemirror@6.0.2?target=es2022&dts";
-import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
-import { keymap } from "https://esm.sh/@codemirror/view@6.38.1?target=es2022&dts";
-import { indentWithTab } from "https://esm.sh/@codemirror/commands@6.8.1?target=es2022&dts";
+} from "https://esm.sh/codemirror?target=es2022&dts";
+import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark?target=es2022&dts";
+import { keymap } from "https://esm.sh/@codemirror/view?target=es2022&dts";
+import { indentWithTab } from "https://esm.sh/@codemirror/commands?target=es2022&dts";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 import { shortUrlId } from "../utils/urlId.ts";
 import { 
@@ -18,15 +18,24 @@ import {
 interface CodeHighlighterProps {
   code: string;
   onCodeChange?: (newCode: string) => void;
+  roomId?: string; // Optional room ID for collaborative editing
 }
 
-export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterProps) {
+export default function CodeHighlighter({ code, onCodeChange, roomId }: CodeHighlighterProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const currentCode = useSignal(code);
   const showFeedback = useSignal(false);
   const feedbackMessage = useSignal("");
   const isSharing = useSignal(false);
+  
+  // Collaborative editing state
+  const ydocRef = useRef<any>(null);
+  const providerRef = useRef<any>(null);
+  const bindingRef = useRef<any>(null);
+  const yUndoManagerRef = useRef<any>(null);
+  const isConnected = useSignal(false);
+  const connectionStatus = useSignal("Connecting...");
 
   // Function to recreate editor with new language support
   const recreateEditor = async (newCode: string) => {
@@ -124,6 +133,84 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     }
 
     viewRef.current = view;
+    
+    // Initialize collaboration if roomId is provided
+    if (roomId) {
+      initializeCollaboration(view);
+    }
+  };
+
+  // Initialize collaborative editing if roomId is provided
+  const initializeCollaboration = async (view: EditorView) => {
+    if (!roomId) return;
+    
+    try {
+      // Dynamically import Y.js modules on client side
+      const [Y, { CodemirrorBinding }, { WebrtcProvider }] = await Promise.all([
+        import("https://esm.sh/yjs?target=es2022&dts"),
+        import("https://esm.sh/y-codemirror?target=es2022&dts"),
+        import("https://esm.sh/y-webrtc?target=es2022&dts")
+      ]);
+
+      // Create Y.js document
+      const ydoc = new Y.Doc();
+      ydocRef.current = ydoc;
+
+      // Create WebRTC provider with the room ID
+      const provider = new WebrtcProvider(roomId, ydoc);
+      providerRef.current = provider;
+
+      // Get shared text
+      const yText = ydoc.getText('codemirror');
+      
+      // Set initial content if the document is empty
+      if (yText.toString().trim() === '') {
+        yText.insert(0, code);
+      }
+
+      // Create undo manager
+      const yUndoManager = new Y.UndoManager(yText, {
+        trackedOrigins: new Set([])
+      });
+      yUndoManagerRef.current = yUndoManager;
+
+      // Create binding between Y.js and CodeMirror
+      const binding = new CodemirrorBinding(yText, view, provider.awareness, {
+        yUndoManager
+      });
+      bindingRef.current = binding;
+
+      // Set up connection status monitoring (logging only)
+      provider.on('status', ({ status }: { status: string }) => {
+        console.log('Connection status:', status);
+        if (status === 'connected') {
+          isConnected.value = true;
+        } else if (status === 'disconnected') {
+          isConnected.value = false;
+        }
+      });
+
+      // Automatically connect when loaded via share slug
+      try {
+        provider.connect();
+        showFeedbackMessage("Collaborative editing enabled!");
+      } catch (error) {
+        console.error('Failed to connect:', error);
+        showFeedbackMessage("Failed to connect. Please try again.");
+      }
+
+      // Set up awareness for user presence
+      provider.awareness.setLocalStateField('user', {
+        name: `User ${Math.floor(Math.random() * 1000)}`,
+        color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+      });
+
+      showFeedbackMessage("Collaborative editing enabled!");
+
+    } catch (error) {
+      console.error('Failed to initialize collaboration:', error);
+      showFeedbackMessage("Failed to enable collaboration");
+    }
   };
 
   useEffect(() => {
@@ -217,12 +304,28 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       }
 
       viewRef.current = view;
+      
+      // Initialize collaboration if roomId is provided
+      if (roomId) {
+        initializeCollaboration(view);
+      }
     };
 
     // Call the async function to create the editor
     createInitialEditor();
 
     return () => {
+      // Cleanup collaborative editing
+      if (bindingRef.current) {
+        bindingRef.current.destroy();
+      }
+      if (providerRef.current) {
+        providerRef.current.destroy();
+      }
+      if (ydocRef.current) {
+        ydocRef.current.destroy();
+      }
+      
       viewRef.current?.destroy();
       viewRef.current = null;
     };
@@ -377,6 +480,32 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     setTimeout(() => showFeedback.value = false, 2000);
   };
 
+  // Toggle collaborative editing connection
+  const toggleConnection = () => {
+    if (!providerRef.current) return;
+
+    if (providerRef.current.shouldConnect) {
+      try {
+        providerRef.current.disconnect();
+        isConnected.value = false;
+        showFeedbackMessage("Disconnected from collaboration");
+      } catch (error) {
+        console.error('Error disconnecting:', error);
+        showFeedbackMessage("Error disconnecting");
+      }
+    } else {
+      try {
+        providerRef.current.connect();
+        isConnected.value = true;
+        showFeedbackMessage("Connecting to collaboration...");
+      } catch (error) {
+        console.error('Error connecting:', error);
+        isConnected.value = false;
+        showFeedbackMessage("Failed to connect. Please try again.");
+      }
+    }
+  };
+
   const hasContent = currentCode.value.trim().length > 0;
   const hasDefaultContent = currentCode.value.trim() === DEFAULT_MESSAGE.trim();
   const isEmpty = !hasContent;
@@ -384,6 +513,8 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   return (
     <div class="relative w-full overflow-hidden" style="height: 100vh; height: 100dvh;">
       <div ref={parentRef} class="h-full w-full" />
+      
+
       
       {/* Action buttons */}
       <div class="absolute bottom-4 right-4 flex gap-2">
