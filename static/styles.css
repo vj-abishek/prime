@@ -30,13 +30,15 @@ html, body {
 
 /* CodeMirror Fira Code styling */
 .cm-editor {
-  font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
+  font-family:
+    "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
   font-feature-settings: "liga" 1, "calt" 1 !important;
   font-variant-ligatures: contextual !important;
 }
 
 .cm-content {
-  font-family: "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
+  font-family:
+    "Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace !important;
   font-feature-settings: "liga" 1, "calt" 1 !important;
   font-variant-ligatures: contextual !important;
 }
