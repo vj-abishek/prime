@@ -4,7 +4,7 @@
 export type SupportedLang = 
   | "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css" 
   | "html" | "xml" | "java" | "cpp" | "c" 
-  | "rust" | "yaml" | "typescript" | "general";
+  | "rust" | "typescript" | "general";
 
 // Language loader with lazy loading
 export const languageLoaders: Record<SupportedLang, () => Promise<any>> = {
@@ -60,10 +60,6 @@ export const languageLoaders: Record<SupportedLang, () => Promise<any>> = {
   rust: async () => {
     const { rust } = await import("https://esm.sh/@codemirror/lang-rust?target=es2022&dts");
     return rust();
-  },
-  yaml: async () => {
-    const { yaml } = await import("https://esm.sh/@codemirror/lang-yaml?target=es2022&dts");
-    return yaml();
   },
   general: async () => {
     // Simple fallback highlighting for unsupported languages
@@ -144,11 +140,6 @@ export function detectLanguageFromContent(content: string): SupportedLang {
   // HTML/XML detection
   if (/^<!DOCTYPE|<html|<head|<body|<div|<span|<p|<h[1-6]|<ul|<ol|<li|<table|<tr|<td|<th|<form|<input|<button|<img|<a|<script|<style|<meta|<link|<title/.test(text)) {
     return "html";
-  }
-
-  // YAML detection
-  if (/^---\s*$|^[a-zA-Z_][a-zA-Z0-9_]*\s*:/.test(text)) {
-    return "yaml";
   }
 
   // Java detection
