@@ -4,7 +4,7 @@
 export type SupportedLang = 
   | "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css" 
   | "html" | "xml" | "java" | "cpp" | "c" 
-  | "go" | "rust" | "yaml" | "typescript";
+  | "rust" | "yaml" | "typescript" | "general";
 
 // Language loader with lazy loading
 export const languageLoaders: Record<SupportedLang, () => Promise<any>> = {
@@ -57,10 +57,6 @@ export const languageLoaders: Record<SupportedLang, () => Promise<any>> = {
     const { cpp } = await import("https://esm.sh/@codemirror/lang-cpp?target=es2022&dts");
     return cpp();
   },
-  go: async () => {
-    const { go } = await import("https://esm.sh/@codemirror/lang-go?target=es2022&dts");
-    return go();
-  },
   rust: async () => {
     const { rust } = await import("https://esm.sh/@codemirror/lang-rust?target=es2022&dts");
     return rust();
@@ -68,6 +64,38 @@ export const languageLoaders: Record<SupportedLang, () => Promise<any>> = {
   yaml: async () => {
     const { yaml } = await import("https://esm.sh/@codemirror/lang-yaml?target=es2022&dts");
     return yaml();
+  },
+  general: async () => {
+    // Simple fallback highlighting for unsupported languages
+    const { StreamLanguage } = await import("https://esm.sh/@codemirror/language?target=es2022&dts");
+    const { LanguageSupport } = await import("https://esm.sh/@codemirror/language?target=es2022&dts");
+    const { syntaxHighlighting, HighlightStyle } = await import("https://esm.sh/@codemirror/language?target=es2022&dts");
+    const { tags } = await import("https://esm.sh/@lezer/highlight?target=es2022&dts");
+    
+    const style = HighlightStyle.define([
+      { tag: tags.string, color: "#a8ff60" },
+      { tag: tags.number, color: "#ff9d00" },
+      { tag: tags.comment, color: "#7a7a7a" },
+      { tag: tags.keyword, color: "#ff73fd" },
+      { tag: tags.operator, color: "#ffffff" },
+      { tag: tags.variableName, color: "#ffcc66" },
+    ]);
+    
+    const parser = StreamLanguage.define({
+      token: (stream) => {
+        if (stream.eatSpace()) return null;
+        if (stream.match(/\/\/.*/)) return "comment";
+        if (stream.match(/"[^"]*"/)) return "string";
+        if (stream.match(/\d+/)) return "number";
+        if (stream.match(/\b(if|else|for|while|function|return|class|import|export)\b/)) return "keyword";
+        if (stream.match(/\w+/)) return "variableName";
+        if (stream.match(/[+\-*/%=<>!&|^~?:;,.()[\]{}]/)) return "operator";
+        stream.next();
+        return null;
+      }
+    });
+    
+    return new LanguageSupport(parser, [syntaxHighlighting(style)]);
   },
 };
 
@@ -133,11 +161,6 @@ export function detectLanguageFromContent(content: string): SupportedLang {
     return text.includes("std::") || text.includes("cout") || text.includes("cin") || text.includes("template") ? "cpp" : "c";
   }
 
-  // Go detection
-  if (/\bpackage\s+main|\bfunc\s+\w+|\bimport\s+["(]|\bfmt\.Print|\bvar\s+\w+|\bconst\s+\w+|\btype\s+\w+|\bstruct\s*\{|\binterface\s*\{|\bgo\s+func/.test(text)) {
-    return "go";
-  }
-
   // Rust detection
   if (/\bfn\s+\w+|\blet\s+mut?\s+\w+|\buse\s+\w+|\bstruct\s+\w+|\benum\s+\w+|\bimpl\s+\w+|\bpub\s+|\bmod\s+\w+|\bprintln!|\bvec!|\bvec!\[/.test(text)) {
     return "rust";
@@ -163,5 +186,5 @@ export function detectLanguageFromContent(content: string): SupportedLang {
     return "js";
   }
 
-  return "txt";
+  return "general";
 }
