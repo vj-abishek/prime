@@ -4,62 +4,20 @@ import {
   basicSetup,
   EditorView,
 } from "https://esm.sh/codemirror@6.0.2?target=es2022&dts";
-import { javascript } from "https://esm.sh/@codemirror/lang-javascript@6.2.2?target=es2022&dts";
-import { json as jsonLang } from "https://esm.sh/@codemirror/lang-json@6.0.1?target=es2022&dts";
-import { python } from "https://esm.sh/@codemirror/lang-python@6.1.3?target=es2022&dts";
-import { css } from "https://esm.sh/@codemirror/lang-css@6.0.1?target=es2022&dts";
-// import { ruby } from "https://esm.sh/@codemirror/lang-ruby@6.0.1?target=es2022&dts";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6.1.3?target=es2022&dts";
 import { keymap } from "https://esm.sh/@codemirror/view@6.38.1?target=es2022&dts";
 import { indentWithTab } from "https://esm.sh/@codemirror/commands@6.8.1?target=es2022&dts";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
 import { shortUrlId } from "../utils/urlId.ts";
+import { 
+  SupportedLang, 
+  detectLanguageFromContent, 
+  getLanguageExtension 
+} from "../utils/languageSupport.ts";
 
 interface CodeHighlighterProps {
   code: string;
   onCodeChange?: (newCode: string) => void;
-}
-
-type SupportedLang = "txt" | "js" | "jsx" | "tsx" | "json" | "py" | "css" | "rb";
-
-function detectLanguageFromContent(content: string): SupportedLang {
-  const text = content.trim();
-  if (!text) return "txt";
-
-  // Try JSON first (fast parse for small content)
-  if ((text.startsWith("{") || text.startsWith("["))) {
-    try {
-      JSON.parse(text);
-      return "json";
-    } catch (_) {/* not json */}
-  }
-
-  // Ruby heuristics (check before Python to avoid conflicts)
-  // if (/\bdef\s+\w+\s*[|(]|\bclass\s+\w+(\s*<\s*\w+)?|\bmodule\s+\w+|\brequire\s+['"]|\binclude\s+\w+|\battr_accessor|\battr_reader|\battr_writer|\bdo\s*\|[^|]*\||\bend\b|\bputs\b|\bprint\b|\bgets\b|\bchomp\b|\bto_s\b|\bto_i\b|\bto_f\b|\bmap\b|\bselect\b|\breject\b|\beach\b|\bcollect\b|\bunless\b|\belsif\b|\bdo\s*$|\bend\s*$/.test(text)) {
-  //   return "rb";
-  // }
-
-  // React/JSX heuristics (check before JavaScript)
-  if (/\bimport\s+React|\bexport\s+default|\breturn\s*\(|\bconst\s+\w+\s*[:=]\s*\(|\bfunction\s+\w+\s*\([^)]*\)\s*:\s*JSX\.Element|\binterface\s+\w+Props|\btype\s+\w+Props|\buse[A-Z]\w+\(|<\w+[^>]*>|<\/\w+>/.test(text)) {
-    return "tsx";
-  }
-
-  // CSS heuristics - simple but effective detection
-  if (/\b\w+\s*:\s*[^;]+;/.test(text) || /[.#]\w+\s*\{/.test(text) || /@(media|import|keyframes)/.test(text)) {
-    return "css";
-  }
-
-  // Python heuristics
-  if (/\bdef\s+\w+\s*\(|\bclass\s+\w+\s*\(|\bimport\s+\w+|:\s*(#.*)?$/m.test(text)) {
-    return "py";
-  }
-
-  // JavaScript heuristics
-  if (/\b(function|const|let|var|import|export|=>)\b|\/\/|\/\*/.test(text)) {
-    return "js";
-  }
-
-  return "txt";
 }
 
 export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterProps) {
@@ -71,7 +29,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
   const isSharing = useSignal(false);
 
   // Function to recreate editor with new language support
-  const recreateEditor = (newCode: string) => {
+  const recreateEditor = async (newCode: string) => {
     if (!parentRef.current) return;
 
     // Destroy existing editor
@@ -84,120 +42,16 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     const detected: SupportedLang = detectLanguageFromContent(newCode);
     console.log("🔍 Re-detected language:", detected, "for pasted content:", newCode.substring(0, 50));
 
-    const languageExtension =
-      detected === "json" ? jsonLang()
-      : detected === "py" ? python()
-      : detected === "css" ? css()
-      : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
-      : detected === "js" ? javascript({ typescript: false })
-      // : detected === "rb" ? ruby()
-      : [];
+    // Get language extension with lazy loading
+    const languageExtension = await getLanguageExtension(detected);
 
     // Detect if device is mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-            // Create new editor with detected language
-        const view = new EditorView({
-          parent: parentRef.current,
-          doc: newCode,
-          extensions: [
-            basicSetup,
-            oneDark,
-            languageExtension,
-            EditorView.editable.of(true),
-            // Tab key now inserts tab characters for indentation
-            // Accessibility: Press Escape then Tab to move focus, or use Ctrl-m (Cmd-m on Mac) to toggle tab focus mode
-            keymap.of([indentWithTab]),
-            EditorView.updateListener.of((update) => {
-              if (update.docChanged) {
-                const updatedCode = update.state.doc.toString();
-                currentCode.value = updatedCode;
-                onCodeChange?.(updatedCode);
-              }
-            }),
-            EditorView.theme({
-              "&": { 
-                height: "100dvh", 
-                maxWidth: "100%",
-                overflow: "hidden",
-                fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-                fontSize: "14px",
-                lineHeight: "1.5"
-              },
-              ".cm-scroller": { 
-                overflow: "auto",
-                height: "calc(100dvh - 80px)" // Account for action buttons
-              },
-              ".cm-content": { 
-                paddingTop: "20px", // Add top padding
-                paddingBottom: "20px", // Reduced padding
-                fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-                fontSize: "14px",
-                lineHeight: "1.5"
-              },
-          // Make line numbers non-selectable and style them
-          ".cm-gutters": { 
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            MozUserSelect: "none",
-            msUserSelect: "none",
-            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-            fontSize: "14px"
-          },
-          ".cm-lineNumbers": { 
-            userSelect: "none",
-            WebkitUserSelect: "none", 
-            MozUserSelect: "none",
-            msUserSelect: "none",
-            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-            fontSize: "14px"
-          },
-          ".cm-gutterElement": {
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            MozUserSelect: "none", 
-            msUserSelect: "none",
-            fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-            fontSize: "14px"
-          }
-        }),
-      ].flat(),
-    });
-
-    // Focus editor on desktop only
-    if (!isMobile) {
-      setTimeout(() => {
-        view.focus();
-      }, 100);
-    }
-
-    viewRef.current = view;
-  };
-
-  useEffect(() => {
-    if (!parentRef.current) return;
-
-    // Only create editor if it doesn't exist
-    if (viewRef.current) return;
-
-    const detected: SupportedLang = detectLanguageFromContent(currentCode.value);
-    console.log("🔍 Detected language:", detected, "for content preview:", currentCode.value.substring(0, 50));
-
-    const languageExtension =
-      detected === "json" ? jsonLang()
-      : detected === "py" ? python()
-      : detected === "css" ? css()
-      : detected === "tsx" || detected === "jsx" ? javascript({ typescript: true, jsx: true })
-      : detected === "js" ? javascript({ typescript: false })
-      // : detected === "rb" ? ruby()
-      : [];
-
-    // Detect if device is mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
+    // Create new editor with detected language
     const view = new EditorView({
-      parent: parentRef.current,
-      doc: currentCode.value,
+      parent: parentRef.current!,
+      doc: newCode,
       extensions: [
         basicSetup,
         oneDark,
@@ -208,9 +62,9 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
         keymap.of([indentWithTab]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            const newCode = update.state.doc.toString();
-            currentCode.value = newCode;
-            onCodeChange?.(newCode);
+            const updatedCode = update.state.doc.toString();
+            currentCode.value = updatedCode;
+            onCodeChange?.(updatedCode);
           }
         }),
         EditorView.theme({
@@ -270,6 +124,103 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
     }
 
     viewRef.current = view;
+  };
+
+  useEffect(() => {
+    if (!parentRef.current) return;
+
+    // Only create editor if it doesn't exist
+    if (viewRef.current) return;
+
+    const createInitialEditor = async () => {
+      const detected: SupportedLang = detectLanguageFromContent(currentCode.value);
+      console.log("🔍 Detected language:", detected, "for content preview:", currentCode.value.substring(0, 50));
+
+      // Get language extension with lazy loading
+      const languageExtension = await getLanguageExtension(detected);
+
+      // Detect if device is mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      const view = new EditorView({
+        parent: parentRef.current!,
+        doc: currentCode.value,
+        extensions: [
+          basicSetup,
+          oneDark,
+          languageExtension,
+          EditorView.editable.of(true),
+          // Tab key now inserts tab characters for indentation
+          // Accessibility: Press Escape then Tab to move focus, or use Ctrl-m (Cmd-m on Mac) to toggle tab focus mode
+          keymap.of([indentWithTab]),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              const newCode = update.state.doc.toString();
+              currentCode.value = newCode;
+              onCodeChange?.(newCode);
+            }
+          }),
+          EditorView.theme({
+            "&": { 
+              height: "100dvh", 
+              maxWidth: "100%",
+              overflow: "hidden",
+              fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+              fontSize: "14px",
+              lineHeight: "1.5"
+            },
+            ".cm-scroller": { 
+              overflow: "auto",
+              height: "calc(100dvh - 80px)" // Account for action buttons
+            },
+            ".cm-content": { 
+              paddingTop: "20px", // Add top padding
+              paddingBottom: "20px", // Reduced padding
+              fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+              fontSize: "14px",
+              lineHeight: "1.5"
+            },
+            // Make line numbers non-selectable and style them
+            ".cm-gutters": { 
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              MozUserSelect: "none",
+              msUserSelect: "none",
+              fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+              fontSize: "14px"
+            },
+            ".cm-lineNumbers": { 
+              userSelect: "none",
+              WebkitUserSelect: "none", 
+              MozUserSelect: "none",
+              msUserSelect: "none",
+              fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+              fontSize: "14px"
+            },
+            ".cm-gutterElement": {
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              MozUserSelect: "none", 
+              msUserSelect: "none",
+              fontFamily: '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
+              fontSize: "14px"
+            }
+          }),
+        ].flat(),
+      });
+
+      // Focus editor on desktop only
+      if (!isMobile) {
+        setTimeout(() => {
+          view.focus();
+        }, 100);
+      }
+
+      viewRef.current = view;
+    };
+
+    // Call the async function to create the editor
+    createInitialEditor();
 
     return () => {
       viewRef.current?.destroy();
@@ -287,12 +238,12 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       }
     };
 
-    const handlePaste = (event: ClipboardEvent) => {
+    const handlePaste = async (event: ClipboardEvent) => {
       // Handle paste events (mobile and desktop)
       const text = event.clipboardData?.getData('text/plain');
       if (text && text.trim()) {
         event.preventDefault();
-        recreateEditor(text);
+        await recreateEditor(text);
         currentCode.value = text;
         onCodeChange?.(text);
         showFeedbackMessage("Pasted successfully!");
@@ -379,7 +330,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
         // Recreate editor with new content and detected language
-        recreateEditor(text);
+        await recreateEditor(text);
         currentCode.value = text;
         onCodeChange?.(text);
         showFeedbackMessage("Pasted successfully!");
@@ -404,7 +355,7 @@ export default function CodeHighlighter({ code, onCodeChange }: CodeHighlighterP
           
           if (success && text.trim()) {
             // Recreate editor with new content and detected language
-            recreateEditor(text);
+            await recreateEditor(text);
             currentCode.value = text;
             onCodeChange?.(text);
             showFeedbackMessage("Pasted successfully!");

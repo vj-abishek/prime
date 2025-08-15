@@ -4,4 +4,4 @@ export function compressCode(code: string): string {
 
 export function decompressCode(compressedCode: string): string {
   return decodeURIComponent(atob(compressedCode));
-} 
+}

@@ -1,10 +1,12 @@
 # merge.cc - Prime
 
-A modern code editor with syntax highlighting and code sharing capabilities built with Fresh and Deno.
+A modern code editor with syntax highlighting and code sharing capabilities
+built with Fresh and Deno.
 
 ## Features
 
-- **Syntax Highlighting**: Supports JavaScript, TypeScript, JSX, TSX, Python, CSS, and JSON
+- **Syntax Highlighting**: Supports JavaScript, TypeScript, JSX, TSX, Python,
+  CSS, and JSON
 - **Code Sharing**: Share code snippets with unique URLs
 - **Gzip Compression**: Code is compressed before storage to save space
 - **Redis Storage**: Uses Upstash Redis for reliable code storage

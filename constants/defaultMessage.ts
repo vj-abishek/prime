@@ -14,4 +14,4 @@ export const DEFAULT_MESSAGE = `✨ FEATURES:
 🚀 READY TO UPGRADE?
   Use the Paste button below to get started!
 
-  Join thousands of developers! 🎉`; 
+  Join thousands of developers! 🎉`;
