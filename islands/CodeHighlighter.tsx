@@ -300,7 +300,7 @@ export default function CodeHighlighter(
 
           // Set initial content if the document is empty
           if (yText.toString().trim() === "") {
-            yText.insert(0, currentCode.value);
+            // yText.insert(0, currentCode.value);
           }
 
           // Create undo manager
