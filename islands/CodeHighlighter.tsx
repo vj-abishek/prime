@@ -71,9 +71,14 @@ export default function CodeHighlighter(
       const ydoc = new Y.Doc();
       ydocRef.current = ydoc;
 
+      // Check if we're in production by looking at the current hostname
+      const isProduction = typeof window !== "undefined" && 
+                          window.location.hostname !== "localhost" && 
+                          window.location.hostname !== "127.0.0.1";
+
       // Create WebSocket provider with the room ID
       const provider = new WebsocketProvider(
-        "ws://localhost:1234",
+        isProduction ? "wss://merg-signaling.fly.dev" : "ws://localhost:1234",
         roomId,
         ydoc,
       );
