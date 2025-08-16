@@ -58,6 +58,7 @@ export default function CodeHighlighter(
 
   // Initialize collaboration if roomId is provided
   const initializeCollaboration = async (newCode: string) => {
+    console.log("initializeCollaboration", roomId);
     if (!roomId) return [];
 
     try {
@@ -84,7 +85,7 @@ export default function CodeHighlighter(
       );
       providerRef.current = provider;
 
-      const yText = ydoc.getText("codemirror");
+      const yText = ydoc?.getText("codemirror");
       
       // Create undo manager
       const yUndoManager = new Y.UndoManager(yText);
@@ -181,12 +182,14 @@ export default function CodeHighlighter(
 
     // Initialize collaboration
     const collaborationExtensions = await initializeCollaboration(codeToUse);
+    
+    // Determine document content: use collaborative text if available, otherwise fall back to local code
+    const yText = ydocRef?.current?.getText("codemirror");
+    const doc = yText ? yText.toString() : currentCode.value;
 
-    const yText = ydocRef.current.getText("codemirror");
-    // Create editor with detected language and collaboration
     const view = new EditorView({
       parent: parentRef.current!,
-      doc: yText.toString(),
+      doc,
       extensions: [
         basicSetup,
         oneDark,
