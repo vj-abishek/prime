@@ -61,30 +61,26 @@ export default function CodeHighlighter(
     if (!roomId) return [];
 
     try {
-      // Dynamically import Y.js and y-codemirror.next modules on client side
-      // @ts-ignore - Dynamic imports for Yjs modules
-      const [Y, { yCollab }, { WebrtcProvider }] = await Promise.all([
+      const [Y, { yCollab }, { WebsocketProvider }] = await Promise.all([
         import("https://esm.sh/yjs?target=es2022&dts"),
         import("https://esm.sh/y-codemirror.next?target=es2022&dts"),
-        import("https://esm.sh/y-webrtc?target=es2022&dts"),
+        import("https://esm.sh/y-websocket?target=es2022&dts"),
       ]);
 
       // Create Y.js document
       const ydoc = new Y.Doc();
       ydocRef.current = ydoc;
 
-      // Create WebRTC provider with the room ID
-      const provider = new WebrtcProvider(roomId, ydoc);
+      // Create WebSocket provider with the room ID
+      const provider = new WebsocketProvider(
+        "ws://localhost:1234",
+        roomId,
+        ydoc,
+      );
       providerRef.current = provider;
 
-      // Get shared text
       const yText = ydoc.getText("codemirror");
-
-      // Set initial content if the document is empty
-      if (yText.toString().trim() === "") {
-        yText.insert(0, newCode);
-      }
-
+      
       // Create undo manager
       const yUndoManager = new Y.UndoManager(yText);
       yUndoManagerRef.current = yUndoManager;
@@ -100,6 +96,12 @@ export default function CodeHighlighter(
           connectionStatus.value = "Disconnected";
         } else {
           connectionStatus.value = status;
+        }
+      });
+
+      provider.on("synced", () => {
+        if (yText.toString().trim() === "") {
+          yText.insert(0, currentCode.value);
         }
       });
 
@@ -120,7 +122,7 @@ export default function CodeHighlighter(
 
       // Set up error handling for provider
       provider.on("error", (error: any) => {
-        console.error("WebRTC provider error:", error);
+        console.error("WebSocket provider error:", error);
         showFeedbackMessage("Connection error occurred");
         isConnected.value = false;
       });
@@ -137,7 +139,10 @@ export default function CodeHighlighter(
   };
 
   // Create editor with the given code and language
-  const createEditor = async (codeToUse: string, isRecreation: boolean = false) => {
+  const createEditor = async (
+    codeToUse: string,
+    isRecreation: boolean = false,
+  ) => {
     if (!parentRef.current) return;
 
     // Destroy existing editor if recreating
@@ -172,10 +177,11 @@ export default function CodeHighlighter(
     // Initialize collaboration
     const collaborationExtensions = await initializeCollaboration(codeToUse);
 
+    const yText = ydocRef.current.getText("codemirror");
     // Create editor with detected language and collaboration
     const view = new EditorView({
       parent: parentRef.current!,
-      doc: codeToUse,
+      doc: yText.toString(),
       extensions: [
         basicSetup,
         oneDark,
@@ -291,12 +297,9 @@ export default function CodeHighlighter(
     const handlePaste = async (event: ClipboardEvent) => {
       // Handle paste events (mobile and desktop)
       const text = event.clipboardData?.getData("text/plain");
-      if (text && text.trim()) {
+      if (text) {
         event.preventDefault();
-        await recreateEditor(text);
-        currentCode.value = text;
-        onCodeChange?.(text);
-        showFeedbackMessage("Pasted successfully!");
+        await handlePasteContent(text);
       }
     };
 
@@ -324,6 +327,50 @@ export default function CodeHighlighter(
       currentCode.value = code;
     }
   }, [code]);
+
+  // Function to write content to yText when collaborative editing is enabled
+  const writeToYText = (content: string) => {
+    if (ydocRef.current && isConnected.value) {
+      const yText = ydocRef.current.getText("codemirror");
+      if (yText) {
+        // Clear existing content and insert new content
+        yText.delete(0, yText.length);
+        yText.insert(0, content);
+        console.log("Content written to yText:", content);
+        
+        // Update the editor view to reflect the changes
+        if (viewRef.current) {
+          const transaction = viewRef.current.state.update({
+            changes: {
+              from: 0,
+              to: viewRef.current.state.doc.length,
+              insert: content,
+            },
+          });
+          viewRef.current.dispatch(transaction);
+        }
+      }
+    }
+  };
+
+  // Handle paste content with appropriate method based on collaboration state
+  const handlePasteContent = async (text: string) => {
+    if (text.trim()) {
+      // If collaborative editing is enabled, write to yText
+      if (isConnected.value && ydocRef.current) {
+        writeToYText(text);
+        currentCode.value = text;
+        onCodeChange?.(text);
+        showFeedbackMessage("Pasted to collaborative editor!");
+      } else {
+        // Fallback to recreating editor for non-collaborative mode
+        await recreateEditor(text);
+        currentCode.value = text;
+        onCodeChange?.(text);
+        showFeedbackMessage("Pasted successfully!");
+      }
+    }
+  };
 
   const copyToClipboard = async () => {
     try {
@@ -379,11 +426,7 @@ export default function CodeHighlighter(
 
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
-        // Recreate editor with new content and detected language
-        await recreateEditor(text);
-        currentCode.value = text;
-        onCodeChange?.(text);
-        showFeedbackMessage("Pasted successfully!");
+        await handlePasteContent(text);
       } else {
         showFeedbackMessage("Clipboard is empty");
       }
@@ -404,11 +447,7 @@ export default function CodeHighlighter(
           document.body.removeChild(textarea);
 
           if (success && text.trim()) {
-            // Recreate editor with new content and detected language
-            await recreateEditor(text);
-            currentCode.value = text;
-            onCodeChange?.(text);
-            showFeedbackMessage("Pasted successfully!");
+            await handlePasteContent(text);
           } else {
             showFeedbackMessage("Please use Ctrl+V to paste");
           }
@@ -437,8 +476,6 @@ export default function CodeHighlighter(
       style="height: 100vh; height: 100dvh;"
     >
       <div ref={parentRef} class="h-full w-full" />
-
-
 
       {/* Action buttons */}
       <div class="absolute bottom-4 right-4 flex gap-2">
