@@ -39,26 +39,125 @@ export default function CodeHighlighter(
   const isConnected = useSignal(false);
   const connectionStatus = useSignal("Connecting...");
 
-  // Function to recreate editor with new language support
-  const recreateEditor = async (newCode: string) => {
+  // Clean up collaboration resources
+  const cleanupCollaboration = () => {
+    if (bindingRef.current) {
+      bindingRef.current.destroy();
+      bindingRef.current = null;
+    }
+    if (providerRef.current) {
+      providerRef.current.destroy();
+      providerRef.current = null;
+    }
+    if (ydocRef.current) {
+      ydocRef.current.destroy();
+      ydocRef.current = null;
+    }
+    isConnected.value = false;
+  };
+
+  // Initialize collaboration if roomId is provided
+  const initializeCollaboration = async (newCode: string) => {
+    if (!roomId) return [];
+
+    try {
+      // Dynamically import Y.js and y-codemirror.next modules on client side
+      // @ts-ignore - Dynamic imports for Yjs modules
+      const [Y, { yCollab }, { WebrtcProvider }] = await Promise.all([
+        import("https://esm.sh/yjs?target=es2022&dts"),
+        import("https://esm.sh/y-codemirror.next?target=es2022&dts"),
+        import("https://esm.sh/y-webrtc?target=es2022&dts"),
+      ]);
+
+      // Create Y.js document
+      const ydoc = new Y.Doc();
+      ydocRef.current = ydoc;
+
+      // Create WebRTC provider with the room ID
+      const provider = new WebrtcProvider(roomId, ydoc);
+      providerRef.current = provider;
+
+      // Get shared text
+      const yText = ydoc.getText("codemirror");
+
+      // Set initial content if the document is empty
+      if (yText.toString().trim() === "") {
+        yText.insert(0, newCode);
+      }
+
+      // Create undo manager
+      const yUndoManager = new Y.UndoManager(yText);
+      yUndoManagerRef.current = yUndoManager;
+
+      // Set up connection status monitoring
+      provider.on("status", ({ status }: { status: string }) => {
+        console.log("Connection status:", status);
+        if (status === "connected") {
+          isConnected.value = true;
+          connectionStatus.value = "Connected";
+        } else if (status === "disconnected") {
+          isConnected.value = false;
+          connectionStatus.value = "Disconnected";
+        } else {
+          connectionStatus.value = status;
+        }
+      });
+
+      // Automatically connect when loaded via share slug
+      try {
+        provider.connect();
+        showFeedbackMessage("Collaborative editing enabled!");
+      } catch (error) {
+        console.error("Failed to connect:", error);
+        showFeedbackMessage("Failed to connect. Please try again.");
+      }
+
+      // Set up awareness for user presence
+      provider.awareness.setLocalStateField("user", {
+        name: `User ${Math.floor(Math.random() * 1000)}`,
+        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+      });
+
+      // Set up error handling for provider
+      provider.on("error", (error: any) => {
+        console.error("WebRTC provider error:", error);
+        showFeedbackMessage("Connection error occurred");
+        isConnected.value = false;
+      });
+
+      // Return collaboration extensions
+      return [
+        yCollab(yText, provider.awareness, { undoManager: yUndoManager }),
+      ];
+    } catch (error) {
+      console.error("Failed to initialize collaboration:", error);
+      showFeedbackMessage("Failed to enable collaboration");
+      return [];
+    }
+  };
+
+  // Create editor with the given code and language
+  const createEditor = async (codeToUse: string, isRecreation: boolean = false) => {
     if (!parentRef.current) return;
 
-    // Destroy existing editor
-    if (viewRef.current) {
+    // Destroy existing editor if recreating
+    if (isRecreation && viewRef.current) {
       viewRef.current.destroy();
       viewRef.current = null;
     }
 
-    // Clean up existing collaboration
-    cleanupCollaboration();
+    // Clean up existing collaboration if recreating
+    if (isRecreation) {
+      cleanupCollaboration();
+    }
 
-    // Detect language for new content
-    const detected: SupportedLang = detectLanguageFromContent(newCode);
+    // Detect language for content
+    const detected: SupportedLang = detectLanguageFromContent(codeToUse);
     console.log(
-      "🔍 Re-detected language:",
+      "🔍 Detected language:",
       detected,
-      "for pasted content:",
-      newCode.substring(0, 50),
+      "for content:",
+      codeToUse.substring(0, 50),
     );
 
     // Get language extension with lazy loading
@@ -70,88 +169,13 @@ export default function CodeHighlighter(
         navigator.userAgent,
       );
 
-    // Initialize collaboration first if roomId is provided
-    let collaborationExtensions: any[] = [];
-    if (roomId) {
-      try {
-        // Dynamically import Y.js and y-codemirror.next modules on client side
-        // @ts-ignore - Dynamic imports for Yjs modules
-        const [Y, { yCollab }, { WebrtcProvider }] = await Promise.all([
-          import("https://esm.sh/yjs?target=es2022&dts"),
-          import("https://esm.sh/y-codemirror.next?target=es2022&dts"),
-          import("https://esm.sh/y-webrtc?target=es2022&dts"),
-        ]);
+    // Initialize collaboration
+    const collaborationExtensions = await initializeCollaboration(codeToUse);
 
-        // Create Y.js document
-        const ydoc = new Y.Doc();
-        ydocRef.current = ydoc;
-
-        // Create WebRTC provider with the room ID
-        const provider = new WebrtcProvider(roomId, ydoc);
-        providerRef.current = provider;
-
-        // Get shared text
-        const yText = ydoc.getText("codemirror");
-
-        // Set initial content if the document is empty
-        if (yText.toString().trim() === "") {
-          yText.insert(0, newCode);
-        }
-
-        // Create undo manager
-        const yUndoManager = new Y.UndoManager(yText);
-        yUndoManagerRef.current = yUndoManager;
-
-        // Add collaboration extension
-        collaborationExtensions = [
-          yCollab(yText, provider.awareness, { undoManager: yUndoManager }),
-        ];
-
-        // Set up connection status monitoring
-        provider.on("status", ({ status }: { status: string }) => {
-          console.log("Connection status:", status);
-          if (status === "connected") {
-            isConnected.value = true;
-            connectionStatus.value = "Connected";
-          } else if (status === "disconnected") {
-            isConnected.value = false;
-            connectionStatus.value = "Disconnected";
-          } else {
-            connectionStatus.value = status;
-          }
-        });
-
-        // Automatically connect when loaded via share slug
-        try {
-          provider.connect();
-          showFeedbackMessage("Collaborative editing enabled!");
-        } catch (error) {
-          console.error("Failed to connect:", error);
-          showFeedbackMessage("Failed to connect. Please try again.");
-        }
-
-        // Set up awareness for user presence
-        provider.awareness.setLocalStateField("user", {
-          name: `User ${Math.floor(Math.random() * 1000)}`,
-          color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        });
-
-        // Set up error handling for provider
-        provider.on("error", (error: any) => {
-          console.error("WebRTC provider error:", error);
-          showFeedbackMessage("Connection error occurred");
-          isConnected.value = false;
-        });
-      } catch (error) {
-        console.error("Failed to initialize collaboration:", error);
-        showFeedbackMessage("Failed to enable collaboration");
-      }
-    }
-
-    // Create new editor with detected language and collaboration
+    // Create editor with detected language and collaboration
     const view = new EditorView({
       parent: parentRef.current!,
-      doc: newCode,
+      doc: codeToUse,
       extensions: [
         basicSetup,
         oneDark,
@@ -232,21 +256,9 @@ export default function CodeHighlighter(
     viewRef.current = view;
   };
 
-  // Clean up collaboration resources
-  const cleanupCollaboration = () => {
-    if (bindingRef.current) {
-      bindingRef.current.destroy();
-      bindingRef.current = null;
-    }
-    if (providerRef.current) {
-      providerRef.current.destroy();
-      providerRef.current = null;
-    }
-    if (ydocRef.current) {
-      ydocRef.current.destroy();
-      ydocRef.current = null;
-    }
-    isConnected.value = false;
+  // Function to recreate editor with new language support
+  const recreateEditor = async (newCode: string) => {
+    await createEditor(newCode, true);
   };
 
   useEffect(() => {
@@ -255,189 +267,8 @@ export default function CodeHighlighter(
     // Only create editor if it doesn't exist
     if (viewRef.current) return;
 
-    const createInitialEditor = async () => {
-      const detected: SupportedLang = detectLanguageFromContent(
-        currentCode.value,
-      );
-      console.log(
-        "🔍 Detected language:",
-        detected,
-        "for content preview:",
-        currentCode.value.substring(0, 50),
-      );
-
-      // Get language extension with lazy loading
-      const languageExtension = await getLanguageExtension(detected);
-
-      // Detect if device is mobile
-      const isMobile =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent,
-        );
-
-      // Initialize collaboration first if roomId is provided
-      let collaborationExtensions: any[] = [];
-      if (roomId) {
-        try {
-          // Dynamically import Y.js and y-codemirror.next modules on client side
-          // @ts-ignore - Dynamic imports for Yjs modules
-          const [Y, { yCollab }, { WebrtcProvider }] = await Promise.all([
-            import("https://esm.sh/yjs?target=es2022&dts"),
-            import("https://esm.sh/y-codemirror.next?target=es2022&dts"),
-            import("https://esm.sh/y-webrtc?target=es2022&dts"),
-          ]);
-
-          // Create Y.js document
-          const ydoc = new Y.Doc();
-          ydocRef.current = ydoc;
-
-          // Create WebRTC provider with the room ID
-          const provider = new WebrtcProvider(roomId, ydoc);
-          providerRef.current = provider;
-
-          // Get shared text
-          const yText = ydoc.getText("codemirror");
-
-          // Set initial content if the document is empty
-          if (yText.toString().trim() === "") {
-            // yText.insert(0, currentCode.value);
-          }
-
-          // Create undo manager
-          const yUndoManager = new Y.UndoManager(yText);
-          yUndoManagerRef.current = yUndoManager;
-
-          // Add collaboration extension
-          collaborationExtensions = [
-            yCollab(yText, provider.awareness, { undoManager: yUndoManager }),
-          ];
-
-          // Set up connection status monitoring
-          provider.on("status", ({ status }: { status: string }) => {
-            console.log("Connection status:", status);
-            if (status === "connected") {
-              isConnected.value = true;
-              connectionStatus.value = "Connected";
-            } else if (status === "disconnected") {
-              isConnected.value = false;
-              connectionStatus.value = "Disconnected";
-            } else {
-              connectionStatus.value = status;
-            }
-          });
-
-          // Automatically connect when loaded via share slug
-          try {
-            provider.connect();
-            showFeedbackMessage("Collaborative editing enabled!");
-          } catch (error) {
-            console.error("Failed to connect:", error);
-            showFeedbackMessage("Failed to connect. Please try again.");
-          }
-
-          // Set up awareness for user presence
-          provider.awareness.setLocalStateField("user", {
-            name: `User ${Math.floor(Math.random() * 1000)}`,
-            color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-          });
-
-          // Set up error handling for provider
-          provider.on("error", (error: any) => {
-            console.error("WebRTC provider error:", error);
-            showFeedbackMessage("Connection error occurred");
-            isConnected.value = false;
-          });
-        } catch (error) {
-          console.error("Failed to initialize collaboration:", error);
-          showFeedbackMessage("Failed to enable collaboration");
-        }
-      }
-
-      const view = new EditorView({
-        parent: parentRef.current!,
-        doc: currentCode.value,
-        extensions: [
-          basicSetup,
-          oneDark,
-          languageExtension,
-          EditorView.editable.of(true),
-          // Tab key now inserts tab characters for indentation
-          // Accessibility: Press Escape then Tab to move focus, or use Ctrl-m (Cmd-m on Mac) to toggle tab focus mode
-          keymap.of([indentWithTab]),
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              const newCode = update.state.doc.toString();
-              currentCode.value = newCode;
-              onCodeChange?.(newCode);
-            }
-          }),
-          EditorView.theme({
-            "&": {
-              height: "100dvh",
-              maxWidth: "100%",
-              overflow: "hidden",
-              fontFamily:
-                '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-              fontSize: "14px",
-              lineHeight: "1.5",
-            },
-            ".cm-scroller": {
-              overflow: "auto",
-              height: "calc(100dvh - 80px)", // Account for action buttons
-            },
-            ".cm-content": {
-              paddingTop: "20px", // Add top padding
-              paddingBottom: "20px", // Reduced padding
-              fontFamily:
-                '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-              fontSize: "14px",
-              lineHeight: "1.5",
-            },
-            // Make line numbers non-selectable and style them
-            ".cm-gutters": {
-              userSelect: "none",
-              WebkitUserSelect: "none",
-              MozUserSelect: "none",
-              msUserSelect: "none",
-              fontFamily:
-                '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-              fontSize: "14px",
-            },
-            ".cm-lineNumbers": {
-              userSelect: "none",
-              WebkitUserSelect: "none",
-              MozUserSelect: "none",
-              msUserSelect: "none",
-              fontFamily:
-                '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-              fontSize: "14px",
-            },
-            ".cm-gutterElement": {
-              userSelect: "none",
-              WebkitUserSelect: "none",
-              MozUserSelect: "none",
-              msUserSelect: "none",
-              fontFamily:
-                '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
-              fontSize: "14px",
-            },
-          }),
-          ...collaborationExtensions,
-        ].flat(),
-      });
-
-      // Focus editor on desktop only
-      if (!isMobile) {
-        setTimeout(() => {
-          view.focus();
-        }, 100);
-      }
-
-      viewRef.current = view;
-    };
-
-    // Call the async function to create the editor
-    createInitialEditor();
+    // Create initial editor using the shared createEditor function
+    createEditor(currentCode.value, false);
 
     return () => {
       // Cleanup collaborative editing
@@ -595,8 +426,6 @@ export default function CodeHighlighter(
     showFeedback.value = true;
     setTimeout(() => showFeedback.value = false, 2000);
   };
-
-
 
   const hasContent = currentCode.value.trim().length > 0;
   const hasDefaultContent = currentCode.value.trim() === DEFAULT_MESSAGE.trim();
