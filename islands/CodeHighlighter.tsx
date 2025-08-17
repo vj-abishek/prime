@@ -14,6 +14,7 @@ import {
   getLanguageExtension,
   SupportedLang,
 } from "../utils/languageSupport.ts";
+import posthog from "../utils/posthog.ts";
 
 interface CodeHighlighterProps {
   code: string;
@@ -202,6 +203,7 @@ export default function CodeHighlighter(
           if (update.docChanged) {
             const updatedCode = update.state.doc.toString();
             currentCode.value = updatedCode;
+            posthog.track("code_changed", { code: updatedCode });
             onCodeChange?.(updatedCode);
           }
         }),
@@ -384,6 +386,7 @@ export default function CodeHighlighter(
     try {
       await navigator.clipboard.writeText(currentCode.value);
       showFeedbackMessage("Copied to clipboard!");
+      posthog.track("code_copied", { code: currentCode.value });
     } catch (err) {
       showFeedbackMessage("Failed to copy");
     }
@@ -413,6 +416,7 @@ export default function CodeHighlighter(
         } else {
           showFeedbackMessage("Share URL copied to clipboard!");
         }
+        posthog.track("code_shared", { code: currentCode.value });
       } else {
         showFeedbackMessage("Failed to share code");
       }
