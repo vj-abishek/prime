@@ -2,12 +2,14 @@ import { Head } from "$fresh/runtime.ts";
 import { useSignal } from "@preact/signals";
 import CodeHighlighter from "../islands/CodeHighlighter.tsx";
 import { DEFAULT_MESSAGE } from "../constants/defaultMessage.ts";
+import posthog from "../utils/posthog.ts";
 
 export default function Home() {
   const typescriptCode = useSignal(DEFAULT_MESSAGE);
 
   const handleCodeChange = (newCode: string) => {
     typescriptCode.value = newCode;
+    posthog.track("code_changed", { code: newCode });
   };
 
   return (
