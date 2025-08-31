@@ -310,6 +310,22 @@ export default function CodeHighlighter(
           setTimeout(() => pasteFromClipboard(), 10);
         }
       }
+
+      // Handle Ctrl+P
+      if ((event.ctrlKey || event.metaKey) && event.key === "p") {
+        event.preventDefault();
+        if (hasContent && !isSharing.value) {
+          shareCode(true);
+        }
+      }
+      
+      // Handle Ctrl+S
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        if (hasContent) {
+          copyToClipboard();
+        }
+      }
     };
 
     const handlePaste = async (event: ClipboardEvent) => {
@@ -399,7 +415,7 @@ export default function CodeHighlighter(
     }
   };
 
-  const shareCode = async () => {
+  const shareCode = async (redirect = false) => {
     if (isSharing.value) return; // Prevent multiple clicks
 
     isSharing.value = true;
@@ -418,6 +434,9 @@ export default function CodeHighlighter(
       if (response.ok) {
         // Copy the share URL to clipboard
         await navigator.clipboard.writeText(result.url);
+        if (redirect) {
+          window.location.href = result.url;
+        }
         if (result.message) {
           showFeedbackMessage(result.message);
         } else {
@@ -496,7 +515,7 @@ export default function CodeHighlighter(
             <button
               onClick={copyToClipboard}
               class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm"
-              title="Copy code"
+              title="Copy code (Ctrl+S / Cmd+S)"
             >
               <svg
                 class="w-4 h-4"
@@ -520,7 +539,7 @@ export default function CodeHighlighter(
               class={`px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors duration-200 flex items-center gap-2 text-sm ${
                 isSharing.value ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              title="Share code"
+              title="Share code (Ctrl+P)"
             >
               {isSharing.value
                 ? (
