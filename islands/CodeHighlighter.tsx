@@ -266,6 +266,10 @@ export default function CodeHighlighter(
     if (!isMobile) {
       setTimeout(() => {
         view.focus();
+        // Also focus the parent div to ensure paste events are captured
+        if (parentRef.current) {
+          parentRef.current.focus();
+        }
       }, 100);
     }
 
@@ -300,15 +304,21 @@ export default function CodeHighlighter(
       // Handle Ctrl+V (Windows/Linux) or Cmd+V (Mac)
       if ((event.ctrlKey || event.metaKey) && event.key === "v") {
         event.preventDefault();
-        pasteFromClipboard();
+        // Ensure editor is focused before pasting
+        if (viewRef.current) {
+          viewRef.current.focus();
+          setTimeout(() => pasteFromClipboard(), 10);
+        }
       }
     };
 
     const handlePaste = async (event: ClipboardEvent) => {
       // Handle paste events (mobile and desktop)
       const text = event.clipboardData?.getData("text/plain");
-      if (text) {
+      if (text && viewRef.current) {
         event.preventDefault();
+        // Ensure editor is focused
+        viewRef.current.focus();
         await handlePasteContent(text);
       }
     };
@@ -338,48 +348,45 @@ export default function CodeHighlighter(
     }
   }, [code]);
 
-  // Function to write content to yText when collaborative editing is enabled
-  const writeToYText = (content: string) => {
-    if (ydocRef.current && isConnected.value) {
-      const yText = ydocRef.current.getText("codemirror");
-      if (yText) {
-        // Clear existing content and insert new content
-        yText.delete(0, yText.length);
-        yText.insert(0, content);
-        console.log("Content written to yText:", content);
-        
-        // Update the editor view to reflect the changes
-        if (viewRef.current) {
-          const transaction = viewRef.current.state.update({
-            changes: {
-              from: 0,
-              to: viewRef.current.state.doc.length,
-              insert: content,
-            },
-          });
-          viewRef.current.dispatch(transaction);
-        }
-      }
-    }
-  };
-
   // Handle paste content with appropriate method based on collaboration state
   const handlePasteContent = async (text: string) => {
-    if (text.trim()) {
-      // If collaborative editing is enabled, write to yText
-      if (isConnected.value && ydocRef.current) {
-        writeToYText(text);
-        currentCode.value = text;
-        onCodeChange?.(text);
-        showFeedbackMessage("Pasted to collaborative editor!");
-      } else {
-        // Fallback to recreating editor for non-collaborative mode
-        await recreateEditor(text);
-        currentCode.value = text;
-        onCodeChange?.(text);
-        showFeedbackMessage("Pasted successfully!");
+    if (!text.trim() || !viewRef.current) return;
+    
+    const view = viewRef.current;
+    const { state } = view;
+    const { selection } = state;
+    
+    // Check if there's a selection (text is selected)
+    const hasSelection = selection.main.anchor !== selection.main.head;
+    
+    // Determine the range to replace/insert
+    const from = hasSelection ? Math.min(selection.main.anchor, selection.main.head) : selection.main.head;
+    const to = hasSelection ? Math.max(selection.main.anchor, selection.main.head) : selection.main.head;
+    
+    // Handle paste in collaborative mode
+    if (isConnected.value && ydocRef.current) {
+      const yText = ydocRef.current.getText("codemirror");
+      if (yText) {
+        if (hasSelection) {
+          yText.delete(from, to);
+        }
+        yText.insert(from, text);
       }
+    } else {
+      // Handle paste in non-collaborative mode
+      const transaction = state.update({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length, head: from + text.length },
+      });
+      view.dispatch(transaction);
     }
+    
+    // Update local state and notify parent
+    const updatedCode = view.state.doc.toString();
+    currentCode.value = updatedCode;
+    onCodeChange?.(updatedCode);
+    
+    showFeedbackMessage(hasSelection ? "Replaced selection!" : "Pasted successfully!");
   };
 
   const copyToClipboard = async () => {
@@ -430,6 +437,11 @@ export default function CodeHighlighter(
 
   const pasteFromClipboard = async () => {
     try {
+      // Ensure editor is focused
+      if (viewRef.current) {
+        viewRef.current.focus();
+      }
+      
       // Check if clipboard API is available
       if (!navigator.clipboard) {
         showFeedbackMessage("Clipboard API not supported");
@@ -445,27 +457,7 @@ export default function CodeHighlighter(
     } catch (err) {
       console.error("Paste error:", err);
       if (err instanceof Error && err.name === "NotAllowedError") {
-        // Fallback: try using a temporary textarea
-        try {
-          const textarea = document.createElement("textarea");
-          textarea.style.position = "fixed";
-          textarea.style.opacity = "0";
-          document.body.appendChild(textarea);
-          textarea.focus();
-
-          // Try to paste using document.execCommand
-          const success = document.execCommand("paste");
-          const text = textarea.value;
-          document.body.removeChild(textarea);
-
-          if (success && text.trim()) {
-            await handlePasteContent(text);
-          } else {
-            showFeedbackMessage("Please use Ctrl+V to paste");
-          }
-        } catch (fallbackErr) {
-          showFeedbackMessage("Please use Ctrl+V to paste");
-        }
+        showFeedbackMessage("Please allow clipboard access or use Ctrl+V");
       } else {
         showFeedbackMessage("Failed to paste");
       }
@@ -487,7 +479,15 @@ export default function CodeHighlighter(
       class="relative w-full overflow-hidden"
       style="height: 100vh; height: 100dvh;"
     >
-      <div ref={parentRef} class="h-full w-full" />
+      <div 
+        ref={parentRef} 
+        class="h-full w-full" 
+        onClick={() => {
+          if (viewRef.current) {
+            viewRef.current.focus();
+          }
+        }}
+      />
 
       {/* Action buttons */}
       <div class="absolute bottom-4 right-4 flex gap-2">
