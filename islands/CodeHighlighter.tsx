@@ -432,16 +432,32 @@ export default function CodeHighlighter(
       const result = await response.json();
 
       if (response.ok) {
-        // Copy the share URL to clipboard
-        await navigator.clipboard.writeText(result.url);
+        // Use native Web Share API if available
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "Shared Code",
+              text: "Check out this code snippet",
+              url: result.url,
+            });
+            showFeedbackMessage("Shared successfully!");
+          } catch (shareError) {
+            // User cancelled sharing or error occurred
+            if (shareError.name !== 'AbortError') {
+              console.error("Share error:", shareError);
+              showFeedbackMessage("Failed to share");
+            }
+          }
+        } else {
+          // Fallback: copy to clipboard for browsers without Web Share API
+          await navigator.clipboard.writeText(result.url);
+          showFeedbackMessage("Share URL copied to clipboard!");
+        }
+        
         if (redirect) {
           window.location.href = result.url;
         }
-        if (result.message) {
-          showFeedbackMessage(result.message);
-        } else {
-          showFeedbackMessage("Share URL copied to clipboard!");
-        }
+        
         posthog.track("code_shared", { code: currentCode.value });
       } else {
         showFeedbackMessage("Failed to share code");
