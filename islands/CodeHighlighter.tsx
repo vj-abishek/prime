@@ -432,13 +432,16 @@ export default function CodeHighlighter(
       const result = await response.json();
 
       if (response.ok) {
-        // Use native Web Share API if available
-        if (navigator.share) {
+        // Detect if device is mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const url = window.location.href.startsWith("https") ? result.url.replace("http://", "https://") : result.url;
+        // Use native Web Share API only on mobile devices
+        if (isMobile && navigator.share) {
           try {
             await navigator.share({
               title: "Shared Code",
               text: "Check out this code snippet",
-              url: result.url,
+              url: url,
             });
             showFeedbackMessage("Shared successfully!");
           } catch (shareError) {
@@ -449,7 +452,7 @@ export default function CodeHighlighter(
             }
           }
         } else {
-          // Fallback: copy to clipboard for browsers without Web Share API
+          // Default behavior: copy to clipboard for desktop and non-mobile
           await navigator.clipboard.writeText(result.url);
           showFeedbackMessage("Share URL copied to clipboard!");
         }
