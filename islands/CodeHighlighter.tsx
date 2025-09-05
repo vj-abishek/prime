@@ -440,7 +440,6 @@ export default function CodeHighlighter(
           try {
             await navigator.share({
               title: "Shared Code",
-              text: "Check out this code snippet",
               url: url,
             });
             showFeedbackMessage("Shared successfully!");
