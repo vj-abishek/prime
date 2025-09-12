@@ -70,7 +70,7 @@ export default async function SharePage(props: PageProps) {
     return (
       <>
         <Head>
-          <title>Invalid URL - merge.cc</title>
+          <title>Invalid URL - merg.cc</title>
           <meta
             name="description"
             content="Invalid or missing code ID in the URL."
@@ -99,7 +99,7 @@ export default async function SharePage(props: PageProps) {
       return (
         <>
           <Head>
-            <title>Code Not Found - merge.cc</title>
+            <title>Code Not Found - merg.cc</title>
             <meta
               name="description"
               content="The shared code could not be found."
@@ -127,7 +127,7 @@ export default async function SharePage(props: PageProps) {
     const detectedLang = detectLanguageFromContent(code);
     const totalLines = code.split("\n").length;
     const currentUrl = props.url.href;
-    const siteName = "merge.cc";
+    const siteName = "merg.cc";
 
     return (
       <>
@@ -207,7 +207,7 @@ export default async function SharePage(props: PageProps) {
     return (
       <>
         <Head>
-          <title>Error - merge.cc</title>
+          <title>Error - merg.cc</title>
           <meta
             name="description"
             content="There was an error loading the shared code."

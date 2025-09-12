@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://merg.cc/sitemap.xml

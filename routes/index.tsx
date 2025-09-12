@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>merge.cc - Beautiful Code Editor & Snippet Sharing</title>
+        <title>merg.cc - Beautiful Code Editor & Snippet Sharing</title>
 
         {/* Basic Meta Tags */}
         <meta
@@ -26,29 +26,29 @@ export default function Home() {
           name="keywords"
           content="code editor, code sharing, typescript, javascript, python, css, programming, snippets"
         />
-        <meta name="author" content="merge.cc" />
+        <meta name="author" content="merg.cc" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         {/* Open Graph Meta Tags */}
         <meta
           property="og:title"
-          content="merge.cc - Beautiful Code Editor & Snippet Sharing"
+          content="merg.cc - Beautiful Code Editor & Snippet Sharing"
         />
         <meta
           property="og:description"
           content="A beautiful, minimalist code editor for writing and sharing code snippets. Support for TypeScript, JavaScript, Python, CSS, and more."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://merge.cc" />
-        <meta property="og:site_name" content="merge.cc" />
+        <meta property="og:url" content="https://merg.cc" />
+        <meta property="og:site_name" content="merg.cc" />
         <meta property="og:locale" content="en_US" />
 
         {/* Twitter Card Meta Tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
-          content="merge.cc - Beautiful Code Editor & Snippet Sharing"
+          content="merg.cc - Beautiful Code Editor & Snippet Sharing"
         />
         <meta
           name="twitter:description"
@@ -72,10 +72,10 @@ export default function Home() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              "name": "merge.cc",
+              "name": "merg.cc",
               "description":
                 "A beautiful, minimalist code editor for writing and sharing code snippets",
-              "url": "https://merge.cc",
+              "url": "https://merg.cc",
               "applicationCategory": "DeveloperApplication",
               "operatingSystem": "Web Browser",
               "offers": {
@@ -85,7 +85,7 @@ export default function Home() {
               },
               "author": {
                 "@type": "Organization",
-                "name": "merge.cc",
+                "name": "merg.cc",
               },
             }),
           }}

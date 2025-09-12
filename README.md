@@ -1,4 +1,4 @@
-# merge.cc - Prime
+# merg.cc - Prime
 
 A modern code editor with syntax highlighting and code sharing capabilities
 built with Fresh and Deno.

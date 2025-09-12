@@ -1,0 +1,16 @@
+{
+  "name": "merg.cc - Code Editor & Snippet Sharing",
+  "short_name": "merg.cc",
+  "description": "A beautiful code editor for writing and sharing code snippets",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

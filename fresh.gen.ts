@@ -9,6 +9,7 @@ import * as $api_joke from "./routes/api/joke.ts";
 import * as $api_store from "./routes/api/store.ts";
 import * as $greet_name_ from "./routes/greet/[name].tsx";
 import * as $index from "./routes/index.tsx";
+import * as $sitemap_xml from "./routes/sitemap.xml.tsx";
 import * as $CodeHighlighter from "./islands/CodeHighlighter.tsx";
 import * as $Counter from "./islands/Counter.tsx";
 import type { Manifest } from "$fresh/server.ts";
@@ -22,6 +23,7 @@ const manifest = {
     "./routes/api/store.ts": $api_store,
     "./routes/greet/[name].tsx": $greet_name_,
     "./routes/index.tsx": $index,
+    "./routes/sitemap.xml.tsx": $sitemap_xml,
   },
   islands: {
     "./islands/CodeHighlighter.tsx": $CodeHighlighter,
