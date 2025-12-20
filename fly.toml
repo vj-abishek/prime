@@ -4,7 +4,7 @@
 #
 
 app = 'merg'
-primary_region = 'sin'
+primary_region = 'bom'
 
 [build]
 
