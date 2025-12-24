@@ -217,7 +217,7 @@ export default function CodeHighlighter(
           },
           ".cm-content": {
             paddingTop: "20px", // Add top padding
-            paddingBottom: "20px", // Reduced padding
+            paddingBottom: "50vh", // Extra space for comfortable scrolling
             fontFamily:
               '"Fira Code", "Monaco", "Menlo", "Ubuntu Mono", monospace',
             fontSize: "14px",
