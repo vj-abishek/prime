@@ -161,7 +161,7 @@ for (const testCase of testCases) {
     }`,
   );
 
-  const detected = detectLanguageFromContent(testCase.content);
+  const detected = await detectLanguageFromContent(testCase.content);
   const passed = detected === testCase.expected;
 
   console.log(`Expected: ${testCase.expected}`);
@@ -235,7 +235,7 @@ console.log(
   `\n📏 Testing with long content (${longContent.length} characters)`,
 );
 const startTime = performance.now();
-const detectedLong = detectLanguageFromContent(longContent);
+const detectedLong = await detectLanguageFromContent(longContent);
 const longDetectTime = performance.now() - startTime;
 console.log(`Detected: ${detectedLong} in ${longDetectTime.toFixed(2)}ms`);
 
@@ -255,14 +255,14 @@ console.log("JavaScript here");
 </script>
 `;
 console.log(`\n🔀 Testing with mixed content`);
-const detectedMixed = detectLanguageFromContent(mixedContent);
+const detectedMixed = await detectLanguageFromContent(mixedContent);
 console.log(`Detected: ${detectedMixed}`);
 
 // Test with special characters
 const specialChars =
   'const test = "Hello\nWorld\tTab"; // Comment with émojis 🚀';
 console.log(`\n✨ Testing with special characters`);
-const detectedSpecial = detectLanguageFromContent(specialChars);
+const detectedSpecial = await detectLanguageFromContent(specialChars);
 console.log(`Detected: ${detectedSpecial}`);
 
 console.log("\n🎉 All tests completed!");

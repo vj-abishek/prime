@@ -164,13 +164,7 @@ export default function CodeHighlighter(
     }
 
     // Detect language for content
-    const detected: SupportedLang = detectLanguageFromContent(codeToUse);
-    console.log(
-      "🔍 Detected language:",
-      detected,
-      "for content:",
-      codeToUse.substring(0, 50),
-    );
+    const detected: SupportedLang = await detectLanguageFromContent(codeToUse);
 
     // Get language extension with lazy loading
     const languageExtension = await getLanguageExtension(detected);
